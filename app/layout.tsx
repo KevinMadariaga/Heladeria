@@ -8,8 +8,10 @@ const figtree = Figtree({ variable: "--font-figtree", subsets: ["latin"] });
 const pacifico = Pacifico({ variable: "--font-pacifico", subsets: ["latin"], weight: "400" });
 
 export const metadata: Metadata = {
-  title: { default: "Kathy POS", template: "%s · Kathy POS" },
-  description: "Inventario y ventas de Kathy Coffe Heladería",
+  title: { default: "Katty Heladería", template: "%s · Katty Heladería" },
+  description: "Helados, café y postres. Sistema de ventas e inventario de Katty Heladería.",
+  applicationName: "Katty Heladería",
+  appleWebApp: { title: "Katty Heladería" },
 };
 
 export const viewport: Viewport = {
