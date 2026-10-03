@@ -37,19 +37,19 @@ export default async function ReportesPage({ searchParams }: PageProps<"/admin/r
     <div className="flex flex-col gap-6">
       <h1 className="text-3xl font-semibold">Reportes</h1>
 
-      <form className="sticker flex flex-wrap items-end gap-3 bg-card p-4">
-        <div className="flex flex-col gap-1.5">
+      <form className="sticker grid grid-cols-1 gap-4 bg-card p-4 sm:flex sm:flex-wrap sm:items-end sm:gap-3">
+        <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="from">Desde</Label>
-          <Input id="from" name="from" type="date" defaultValue={range.from} className="h-11" />
+          <Input id="from" name="from" type="date" defaultValue={range.from} className="h-11 w-full sm:w-44" />
         </div>
-        <div className="flex flex-col gap-1.5">
+        <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="to">Hasta</Label>
-          <Input id="to" name="to" type="date" defaultValue={range.to} className="h-11" />
+          <Input id="to" name="to" type="date" defaultValue={range.to} className="h-11 w-full sm:w-44" />
         </div>
-        <Button type="submit" className="press-3d h-11 rounded-xl px-5">
+        <Button type="submit" className="press-3d h-11 w-full rounded-xl px-5 sm:w-auto">
           Ver
         </Button>
-        <p className="w-full text-sm text-muted-foreground">Fechas en hora de Colombia, días completos.</p>
+        <p className="text-sm text-muted-foreground sm:w-full">Fechas en hora de Colombia, días completos.</p>
       </form>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
