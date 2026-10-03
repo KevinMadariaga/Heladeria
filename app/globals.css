@@ -1,26 +1,249 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Siempre tema claro (blanco + lila): la variante dark solo aplicaría con una clase .dark que no usamos. */
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-figtree);
+  --font-heading: var(--font-fredoka);
+  --font-brand: var(--font-pacifico);
+  --color-warning: var(--warning);
+  --color-uva-900: var(--uva-900);
+  --color-uva-700: var(--uva-700);
+  --color-lila-400: var(--lila-400);
+  --color-lila-100: var(--lila-100);
+  --color-fresa-300: var(--fresa-300);
+  --color-caramelo-400: var(--caramelo-400);
+  --color-cafe-600: var(--cafe-600);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  color-scheme: light;
+  /* Marca Kathy */
+  --uva-900: #3d0f57;
+  --uva-700: #5b1a7e;
+  --lila-400: #b98ae6;
+  --lila-100: #f1e6fd;
+  --fresa-300: #f7b9da;
+  --caramelo-400: #e2a35a;
+  --cafe-600: #7a4a2e;
+
+  --background: var(--lila-100);
+  --foreground: var(--uva-900);
+  --card: #ffffff;
+  --card-foreground: var(--uva-900);
+  --popover: #ffffff;
+  --popover-foreground: var(--uva-900);
+  --primary: var(--uva-700);
+  --primary-foreground: #ffffff;
+  --secondary: #e6d4fa;
+  --secondary-foreground: var(--uva-900);
+  --muted: #e9dcf8;
+  --muted-foreground: #6b4a80;
+  --accent: var(--fresa-300);
+  --accent-foreground: var(--uva-900);
+  --destructive: #c0264d;
+  --warning: var(--caramelo-400);
+  --border: #dcc6f5;
+  --input: #d3b8f2;
+  --ring: var(--lila-400);
+  --chart-1: var(--uva-700);
+  --chart-2: var(--lila-400);
+  --chart-3: var(--fresa-300);
+  --chart-4: var(--caramelo-400);
+  --chart-5: var(--cafe-600);
+  --radius: 1rem;
+  --sticker-edge: #ffffff;
+  --sticker-shadow: 0 10px 30px -8px rgb(91 26 126 / 0.28);
+  --press-shadow: var(--uva-900);
+  --sidebar: #ffffff;
+  --sidebar-foreground: var(--uva-900);
+  --sidebar-primary: var(--uva-700);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--lila-100);
+  --sidebar-accent-foreground: var(--uva-900);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+
+/* Tarjeta "sticker": contorno blanco grueso + sombra lila suave */
+@utility sticker {
+  border: 4px solid var(--sticker-edge);
+  border-radius: 1.5rem;
+  box-shadow: var(--sticker-shadow);
+}
+
+/* Botón con sombra 3D que se hunde al presionar */
+@utility press-3d {
+  box-shadow: 0 5px 0 var(--press-shadow);
+  transition: transform 150ms ease-out, box-shadow 150ms ease-out;
+  &:active:not(:disabled) {
+    transform: translateY(4px);
+    box-shadow: 0 1px 0 var(--press-shadow);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Modal: transición CSS sobre <dialog> nativo (entra y sale, interrumpible) */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+dialog.modal {
+  opacity: 0;
+  transform: scale(0.96);
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 200ms var(--ease-out),
+    overlay 200ms allow-discrete,
+    display 200ms allow-discrete;
+}
+dialog.modal[open] {
+  opacity: 1;
+  transform: none;
+}
+@starting-style {
+  dialog.modal[open] {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+dialog.modal::backdrop {
+  background-color: rgb(61 15 87 / 0);
+  backdrop-filter: blur(0);
+  transition:
+    background-color 200ms var(--ease-out),
+    backdrop-filter 200ms var(--ease-out),
+    overlay 200ms allow-discrete,
+    display 200ms allow-discrete;
+}
+dialog.modal[open]::backdrop {
+  background-color: rgb(61 15 87 / 0.4);
+  backdrop-filter: blur(4px);
+}
+@starting-style {
+  dialog.modal[open]::backdrop {
+    background-color: rgb(61 15 87 / 0);
+    backdrop-filter: blur(0);
+  }
+}
+
+/* Tarjeta de catálogo: leve elevación solo con mouse real */
+.lift {
+  transition:
+    transform 150ms var(--ease-out),
+    box-shadow 150ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .lift:hover {
+    transform: translateY(-2px);
+  }
+}
+.lift:active {
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog.modal,
+  dialog.modal[open] {
+    transform: none;
+  }
+  .lift:hover,
+  .lift:active {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  button:not(:disabled), [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  html {
+    @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior-y: none;
+  }
+  button,
+  a,
+  [role="button"],
+  summary,
+  label:has(input[type="radio"], input[type="checkbox"]) {
+    touch-action: manipulation;
+  }
+  button,
+  [role="button"] {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  h1, h2, h3, h4, button, label {
+    @apply font-heading;
+  }
+}
+/* Impresión del ticket: solo #ticket */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #ticket,
+  #ticket * {
+    visibility: visible;
+    color: #000;
+  }
+  #ticket {
+    position: fixed;
+    inset: 0 auto auto 0;
+    width: 72mm;
+  }
 }
