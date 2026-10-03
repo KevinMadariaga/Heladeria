@@ -6,6 +6,8 @@ import { loginSchema } from "@/lib/validations/user";
 import { User } from "@/models/User";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // Detrás del proxy de Vercel el host llega por cabeceras; confiamos en él explícitamente.
+  trustHost: true,
   session: { strategy: "jwt", maxAge: 60 * 60 * 12 },
   pages: { signIn: "/login" },
   providers: [
