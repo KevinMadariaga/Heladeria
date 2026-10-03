@@ -58,11 +58,10 @@ test("admin sube foto de producto y se sirve", async ({ page }) => {
   await page.getByRole("button", { name: new RegExp(name) }).click();
   const img = page.getByRole("dialog", { name, exact: true }).locator("img").first();
   await expect(img).toBeVisible();
-  const src = decodeURIComponent((await img.getAttribute("src"))!);
-  expect(src).toContain("/api/images/");
-  const id = src.match(/\/api\/images\/([a-f0-9]{24})/)![1];
-  const res = await page.request.get(`/api/images/${id}`);
-  expect(res.status()).toBe(200);
+  const imageId = async () => decodeURIComponent((await img.getAttribute("src"))!).match(/\/api\/images\/([a-f0-9]{24})/)?.[1];
+  // La ficha debe terminar mostrando la foto nueva (la anterior se borra al reemplazarla).
+  await expect.poll(async () => (await page.request.get(`/api/images/${await imageId()}`)).status(), { timeout: 10_000 }).toBe(200);
+  const res = await page.request.get(`/api/images/${await imageId()}`);
   expect(res.headers()["content-type"]).toBe("image/jpeg"); // reducida a JPEG en el navegador
   expect((await res.body()).length).toBeLessThan(300_000);
 });
@@ -77,4 +76,22 @@ test("dashboard muestra KPIs y gráficas", async ({ page }) => {
     await expect(page.getByRole("link", { name: tab, exact: true })).toHaveAttribute("aria-current", "page");
     await expect(page.locator(".recharts-bar-rectangle").first()).toBeVisible();
   }
+});
+
+test("admin elimina un producto con confirmación", async ({ page }) => {
+  const name = `Eliminar E2E ${Date.now()}`;
+  await page.goto("/admin/productos");
+  await page.getByRole("button", { name: "Agregar producto" }).click();
+  const form = page.getByRole("region", { name: "Nuevo producto" }).locator("form");
+  await form.getByLabel("Nombre").fill(name);
+  await form.getByLabel("Precio (COP)").fill("1000");
+  await form.getByRole("button", { name: "Crear producto" }).click();
+  await expect(form.getByText("Guardado ✓")).toBeVisible();
+
+  await page.getByRole("button", { name: new RegExp(name) }).click();
+  const dialog = page.getByRole("dialog", { name, exact: true });
+  await dialog.getByRole("button", { name: "Eliminar" }).click();
+  await dialog.getByRole("button", { name: "Eliminar definitivamente" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByRole("button", { name: new RegExp(name) })).toHaveCount(0);
 });

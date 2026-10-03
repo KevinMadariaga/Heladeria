@@ -80,3 +80,17 @@ export async function setCategoryActive(formData: FormData) {
   await Category.updateOne({ _id: id }, { active: active === "true" });
   refresh();
 }
+
+const deleteSchema = z.object({ id: z.string().regex(/^[a-f0-9]{24}$/) });
+
+/** Elimina el producto y su foto. Ventas y movimientos conservan su copia (nombre y precio). */
+export async function deleteProduct(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireRole("admin");
+  const parsed = deleteSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: "Producto inválido" };
+  const deleted = await Product.findOneAndDelete({ _id: parsed.data.id });
+  if (!deleted) return { error: "El producto ya no existe" };
+  await deleteLocalImage(deleted.imageUrl);
+  refresh();
+  return { ok: true };
+}

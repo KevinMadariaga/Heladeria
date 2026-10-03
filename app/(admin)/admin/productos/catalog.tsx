@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Pencil, Search } from "lucide-react";
+import { useActionState, useMemo, useState } from "react";
+import { Pencil, Search, Trash2 } from "lucide-react";
 import { Modal } from "@/components/modal";
 import { ProductImage } from "@/components/product-image";
 import { StockBadge } from "@/components/stock-badge";
@@ -10,12 +10,46 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCOP } from "@/lib/money";
 import type { ClientProduct } from "@/lib/serialize";
-import { setProductActive } from "./actions";
+import { deleteProduct, type FormState, setProductActive } from "./actions";
 import { ProductForm } from "./product-form";
 
 type Category = { id: string; name: string; color: string; active: boolean };
 
-function Detail({ product, category, onEdit }: { product: ClientProduct; category?: Category; onEdit: () => void }) {
+function DeleteProduct({ product, onDeleted }: { product: ClientProduct; onDeleted: () => void }) {
+  const [confirming, setConfirming] = useState(false);
+  const [state, action, pending] = useActionState(async (prev: FormState, fd: FormData) => {
+    const res = await deleteProduct(prev, fd);
+    if (res?.ok) onDeleted();
+    return res;
+  }, undefined);
+
+  if (!confirming) {
+    return (
+      <Button type="button" variant="ghost" onClick={() => setConfirming(true)} className="h-11 rounded-xl text-destructive">
+        <Trash2 /> Eliminar
+      </Button>
+    );
+  }
+  return (
+    <form action={action} role="alertdialog" aria-labelledby={`del-${product.id}`} className="flex w-full flex-col gap-3 rounded-2xl border-2 border-destructive/30 bg-destructive/5 p-3">
+      <input type="hidden" name="id" value={product.id} />
+      <p id={`del-${product.id}`} className="text-sm">
+        ¿Eliminar <strong>{product.name}</strong>? No se puede deshacer. Las ventas pasadas se conservan. Si solo quieres ocultarlo del POS, usa Desactivar.
+      </p>
+      {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
+      <div className="flex flex-wrap justify-center gap-2">
+        <Button type="button" variant="outline" onClick={() => setConfirming(false)} className="h-10 rounded-xl">
+          Cancelar
+        </Button>
+        <Button type="submit" variant="destructive" disabled={pending} autoFocus className="h-10 rounded-xl bg-destructive text-white hover:bg-destructive/90">
+          {pending ? "Eliminando…" : "Eliminar definitivamente"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function Detail({ product, category, onEdit, onDeleted }: { product: ClientProduct; category?: Category; onEdit: () => void; onDeleted: () => void }) {
   const margin = product.cost !== undefined && product.price > 0 ? Math.round(((product.price - product.cost) / product.price) * 100) : null;
   return (
     <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -74,6 +108,7 @@ function Detail({ product, category, onEdit }: { product: ClientProduct; categor
               {product.active ? "Desactivar" : "Reactivar"}
             </Button>
           </form>
+          <DeleteProduct key={product.id} product={product} onDeleted={onDeleted} />
         </div>
       </div>
     </div>
@@ -170,7 +205,7 @@ export function Catalog({ products, categories }: { products: ClientProduct[]; c
           (editing ? (
             <ProductForm key={open.id} product={open} categories={categories} onCancel={() => setEditing(false)} onSaved={() => setEditing(false)} />
           ) : (
-            <Detail product={open} category={catById.get(open.categoryId)} onEdit={() => setEditing(true)} />
+            <Detail product={open} category={catById.get(open.categoryId)} onEdit={() => setEditing(true)} onDeleted={() => setOpenId(null)} />
           ))}
       </Modal>
     </section>
