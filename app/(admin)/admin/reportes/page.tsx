@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { requireRole } from "@/lib/auth-guard";
 import { formatCOP, formatDateTime, PAYMENT_LABELS } from "@/lib/money";
 import { parseRange, rangeSummary, salesInRange, shiftsInRange } from "@/lib/report-queries";
-import { VoidButton } from "./void-button";
+import { VoidSaleButton } from "@/components/void-sale-button";
+import { voidSaleAction } from "./actions";
 
 export const metadata: Metadata = { title: "Reportes" };
 
@@ -114,7 +115,7 @@ export default async function ReportesPage({ searchParams }: PageProps<"/admin/r
                     <td className={`py-2 pr-3 text-right font-heading tabular-nums ${s.status === "voided" ? "line-through" : ""}`}>{formatCOP(s.total)}</td>
                     <td className="py-2 text-right">
                       {s.status === "paid" ? (
-                        <VoidButton saleId={String(s._id)} number={s.number} total={s.total} />
+                        <VoidSaleButton saleId={String(s._id)} number={s.number} total={s.total} action={voidSaleAction} />
                       ) : (
                         <Badge variant="outline" title={s.voidReason ?? ""}>
                           Anulada

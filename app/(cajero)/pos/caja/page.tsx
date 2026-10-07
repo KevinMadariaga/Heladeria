@@ -8,6 +8,8 @@ import { Sale } from "@/models/Sale";
 import { OpenShiftForm } from "../open-shift-form";
 import { CloseShiftForm } from "./close-shift-form";
 import { SaleMethodButton } from "./sale-method-button";
+import { VoidSaleButton } from "@/components/void-sale-button";
+import { returnSaleAction } from "../actions";
 
 export const metadata: Metadata = { title: "Caja" };
 
@@ -89,7 +91,7 @@ export default async function CajaPage() {
         ) : (
           <ul className="flex flex-col divide-y divide-border">
             {sales.map((s) => (
-              <li key={String(s._id)} className={`flex flex-wrap items-center justify-between gap-2 py-2 ${s.status === "voided" ? "line-through opacity-60" : ""}`}>
+              <li key={String(s._id)} className={`flex flex-wrap items-center justify-between gap-2 py-2 ${s.status === "voided" ? "opacity-60" : ""}`}>
                 <span className="font-heading font-medium">#{s.number}</span>
                 <span className="text-sm text-muted-foreground">{formatDateTime(s.createdAt)}</span>
                 <span className="min-w-0 flex-1 truncate text-sm">{s.items.map((i) => `${i.qty}× ${i.name}`).join(", ")}</span>
@@ -97,8 +99,14 @@ export default async function CajaPage() {
                   {PAYMENT_LABELS[s.paymentMethod]}
                   {(s.paymentChanges?.length ?? 0) > 0 && <span className="text-muted-foreground"> (cambiado)</span>}
                 </span>
-                <span className="font-heading font-semibold">{formatCOP(s.total)}</span>
-                {s.status === "paid" && <SaleMethodButton saleId={String(s._id)} number={s.number} method={s.paymentMethod} total={s.total} />}
+                <span className={`font-heading font-semibold ${s.status === "voided" ? "line-through" : ""}`}>{formatCOP(s.total)}</span>
+                {s.status === "paid" && (
+                  <span className="flex gap-2">
+                    <SaleMethodButton saleId={String(s._id)} number={s.number} method={s.paymentMethod} total={s.total} />
+                    <VoidSaleButton saleId={String(s._id)} number={s.number} total={s.total} action={returnSaleAction} label="Devolver" />
+                  </span>
+                )}
+                {s.status === "voided" && <span className="text-sm text-muted-foreground">Devuelta: {s.voidReason}</span>}
               </li>
             ))}
           </ul>

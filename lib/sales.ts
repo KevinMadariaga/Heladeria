@@ -133,11 +133,21 @@ export async function closeShift(actor: Actor, countedCash: number) {
   return String(shift._id);
 }
 
-/** Anula una venta pagada y devuelve el stock que esa venta descontó. Todo o nada. */
-export async function voidSaleTx(actor: Actor, saleId: string, reason: string) {
+/**
+ * Anula (devuelve) una venta pagada y devuelve el stock que esa venta descontó. Todo o nada.
+ * Admin: cualquier venta. Cajero: solo sus ventas y mientras la caja de esa venta siga abierta.
+ */
+export async function voidSaleTx(actor: Actor & { role: "admin" | "cashier" }, saleId: string, reason: string) {
   const session = await mongoose.startSession();
   try {
     await session.withTransaction(async () => {
+      if (actor.role !== "admin") {
+        const own = await Sale.findOne({ _id: saleId, cashierId: actor.id }).session(session).lean();
+        if (!own) throw new BusinessError("Solo puedes devolver tus propias ventas");
+        if (!(await CashShift.exists({ _id: own.shiftId, status: "open" }).session(session))) {
+          throw new BusinessError("La caja de esta venta ya se cerró; pídele al administrador que la anule");
+        }
+      }
       const sale = await Sale.findOneAndUpdate(
         { _id: saleId, status: "paid" },
         { status: "voided", voidReason: reason, voidedAt: new Date(), voidedBy: actor.id },

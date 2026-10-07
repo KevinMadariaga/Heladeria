@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth-guard";
 import { BusinessError } from "@/lib/cash";
-import { changePaymentMethod, closeShift, createSaleTx, openShift } from "@/lib/sales";
+import { changePaymentMethod, closeShift, createSaleTx, openShift, voidSaleTx } from "@/lib/sales";
+import { voidSchema } from "@/lib/validations/inventory";
 import { changeMethodSchema, closeShiftSchema, openShiftSchema, saleInputSchema } from "@/lib/validations/sale";
 import { Sale } from "@/models/Sale";
 
@@ -87,4 +88,20 @@ export async function changePaymentAction(raw: unknown) {
   revalidatePath("/pos", "layout");
   revalidatePath("/admin", "layout");
   return { ok: true, paymentMethod: s.paymentMethod, cashReceived: s.cashReceived ?? undefined, change: s.change ?? undefined };
+}
+
+/** Devolución desde Caja: el cajero solo sus ventas del turno abierto (lo valida voidSaleTx). */
+export async function returnSaleAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const user = await requireRole("admin", "cashier");
+  const parsed = voidSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: z.prettifyError(parsed.error) };
+  try {
+    await voidSaleTx(user, parsed.data.saleId, parsed.data.reason);
+  } catch (err) {
+    if (err instanceof BusinessError) return { error: err.message };
+    throw err;
+  }
+  revalidatePath("/pos", "layout");
+  revalidatePath("/admin", "layout");
+  return { ok: true };
 }

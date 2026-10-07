@@ -6,21 +6,35 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCOP } from "@/lib/money";
-import { type FormState, voidSaleAction } from "./actions";
 
-export function VoidButton({ saleId, number, total }: { saleId: string; number: number; total: number }) {
+type FormState = { ok?: boolean; error?: string } | undefined;
+
+/** Anular/devolver una venta con motivo. `action` es la Server Action que aplica las reglas de cada rol. */
+export function VoidSaleButton({
+  saleId,
+  number,
+  total,
+  action: voidAction,
+  label = "Anular",
+}: {
+  saleId: string;
+  number: number;
+  total: number;
+  action: (prev: FormState, fd: FormData) => Promise<FormState>;
+  label?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState(async (prev: FormState, fd: FormData) => {
-    const res = await voidSaleAction(prev, fd);
+    const res = await voidAction(prev, fd);
     if (res?.ok) setOpen(false);
     return res;
   }, undefined);
   return (
     <>
       <Button type="button" variant="destructive" className="h-9 rounded-xl" onClick={() => setOpen(true)}>
-        Anular
+        {label}
       </Button>
-      <Modal open={open} onClose={() => setOpen(false)} title={`Anular venta #${number}`}>
+      <Modal open={open} onClose={() => setOpen(false)} title={`${label} venta #${number}`}>
         <form action={action} className="flex flex-col gap-4">
           <input type="hidden" name="saleId" value={saleId} />
           <p>
@@ -38,7 +52,7 @@ export function VoidButton({ saleId, number, total }: { saleId: string; number: 
               Cancelar
             </Button>
             <Button type="submit" variant="destructive" disabled={pending} className="h-11 rounded-xl">
-              {pending ? "Anulando…" : "Anular venta"}
+              {pending ? "Procesando…" : `${label} venta`}
             </Button>
           </div>
         </form>

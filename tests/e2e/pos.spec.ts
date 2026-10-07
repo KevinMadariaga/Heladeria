@@ -99,3 +99,35 @@ test("cambiar método de pago después de cobrar: efectivo → transferencia →
   await page.getByRole("button", { name: "Cerrar caja" }).click();
   await expect(page.getByRole("heading", { name: "Último cierre" })).toBeVisible();
 });
+
+test("cajero devuelve una venta de su turno: vuelve el stock y el efectivo", async ({ page }) => {
+  await loginCajeroConCajaAbierta(page, "30000");
+  const stockTorta = async () => {
+    await page.goto("/pos/inventario");
+    const row = page.getByRole("listitem").filter({ hasText: "Torta de chocolate (porción)" });
+    return Number((await row.getByText(/\d+ u\./).first().innerText()).match(/(\d+) u\./)![1]);
+  };
+  const stock0 = await stockTorta();
+
+  await page.goto("/pos");
+  await page.getByRole("region", { name: "Productos" }).getByRole("button", { name: /Torta de chocolate/ }).click();
+  await page.getByRole("complementary", { name: "Carrito" }).getByRole("button", { name: /Cobrar \$\s?8\.000/ }).click();
+  await page.getByRole("dialog", { name: "Venta registrada" }).getByRole("button", { name: "Nueva venta" }).click();
+  expect(await stockTorta()).toBe(stock0 - 1);
+
+  await page.goto("/pos/caja");
+  await expect(fila(page, "Efectivo esperado")).toHaveText(/38\.000/);
+  await page.getByRole("button", { name: "Devolver" }).click();
+  const dialog = page.getByRole("dialog", { name: /Devolver venta #\d+/ });
+  await dialog.getByLabel("Motivo").fill("Se le cayó al cliente");
+  await dialog.getByRole("button", { name: "Devolver venta" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText("Devuelta: Se le cayó al cliente")).toBeVisible();
+  await expect(fila(page, "Efectivo esperado")).toHaveText(/30\.000/);
+  expect(await stockTorta()).toBe(stock0);
+
+  await page.goto("/pos/caja");
+  await page.getByLabel("Efectivo contado (COP)").fill("30000");
+  await page.getByRole("button", { name: "Cerrar caja" }).click();
+  await expect(page.getByRole("heading", { name: "Último cierre" })).toBeVisible();
+});
