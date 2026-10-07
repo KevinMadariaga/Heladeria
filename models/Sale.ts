@@ -1,5 +1,6 @@
 import { type InferSchemaType, Schema, model, models, type Model } from "mongoose";
 
+// Todos los valores que pueden existir guardados (tarjeta/Nequi/Daviplata quedan solo por ventas antiguas).
 export const PAYMENT_METHODS = ["cash", "card", "transfer", "nequi", "daviplata"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 

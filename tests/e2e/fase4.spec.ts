@@ -51,7 +51,9 @@ test("admin: anular venta devuelve el stock y sale de los reportes", async ({ pa
   }
   await page.getByRole("button", { name: /Brownie/ }).click();
   const carrito = page.getByRole("complementary", { name: "Carrito" });
-  await carrito.getByRole("radio", { name: "Tarjeta" }).click();
+  // Solo se cobra en efectivo o transferencia
+  await expect(carrito.getByRole("radiogroup", { name: "Método de pago" }).getByRole("radio")).toHaveText(["Efectivo", "Transferencia"]);
+  await carrito.getByRole("radio", { name: "Transferencia" }).click();
   await carrito.getByRole("button", { name: /Cobrar/ }).click();
   const ticket = page.getByRole("dialog", { name: "Venta registrada" });
   const number = (await ticket.getByText(/Venta #\d+/).innerText()).match(/#(\d+)/)![1];

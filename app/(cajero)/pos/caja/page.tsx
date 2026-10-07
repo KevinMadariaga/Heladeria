@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { requireRole } from "@/lib/auth-guard";
 import { closeShiftTotals } from "@/lib/cash";
-import { formatCOP, formatDateTime, PAYMENT_LABELS } from "@/lib/money";
+import { ACTIVE_PAYMENT_METHODS, formatCOP, formatDateTime, PAYMENT_LABELS } from "@/lib/money";
 import { shiftTotals } from "@/lib/sales";
 import { CashShift } from "@/models/CashShift";
 import { Sale } from "@/models/Sale";
@@ -11,7 +11,10 @@ import { SaleMethodButton } from "./sale-method-button";
 
 export const metadata: Metadata = { title: "Caja" };
 
-const METHODS = Object.keys(PAYMENT_LABELS) as (keyof typeof PAYMENT_LABELS)[];
+type Method = keyof typeof PAYMENT_LABELS;
+/** Efectivo y transferencia siempre; métodos antiguos (tarjeta, Nequi…) solo si tienen ventas. */
+const methodsFor = (totals: Partial<Record<string, number>> | undefined) =>
+  (Object.keys(PAYMENT_LABELS) as Method[]).filter((m) => (ACTIVE_PAYMENT_METHODS as readonly string[]).includes(m) || (totals?.[m] ?? 0) > 0);
 
 function Row({ label, value, strong }: { label: string; value: number; strong?: boolean }) {
   return (
@@ -36,8 +39,8 @@ export default async function CajaPage() {
             <p className="mb-3 text-sm text-muted-foreground">{formatDateTime(last.closedAt!)}</p>
             <dl className="flex flex-col gap-1">
               <Row label="Base" value={last.openingCash} />
-              {METHODS.map((m) => (
-                <Row key={m} label={PAYMENT_LABELS[m]} value={last.totalsByMethod?.[m as never] ?? 0} />
+              {methodsFor(last.totalsByMethod as Record<string, number> | undefined).map((m) => (
+                <Row key={m} label={PAYMENT_LABELS[m]} value={(last.totalsByMethod as Record<string, number> | undefined)?.[m] ?? 0} />
               ))}
               <Row label="Efectivo esperado" value={last.expectedCash ?? 0} strong />
               <Row label="Efectivo contado" value={last.countedCash ?? 0} />
@@ -68,7 +71,7 @@ export default async function CajaPage() {
         </div>
         <dl className="flex flex-col gap-1">
           <Row label="Base" value={shift.openingCash} />
-          {METHODS.map((m) => (
+          {methodsFor(totalsByMethod).map((m) => (
             <Row key={m} label={PAYMENT_LABELS[m]} value={totalsByMethod[m] ?? 0} />
           ))}
           <Row label={`Ventas (${salesCount})`} value={total} strong />

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Banknote, CreditCard, Landmark, Smartphone, Wallet, type LucideIcon } from "lucide-react";
-import { formatCOP, PAYMENT_LABELS } from "@/lib/money";
+import { ACTIVE_PAYMENT_METHODS, formatCOP, PAYMENT_LABELS } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import type { PaymentMethod } from "@/models/Sale";
 import { changePaymentAction } from "./actions";
@@ -14,7 +14,7 @@ export const METHOD_ICON: Record<PaymentMethod, LucideIcon> = {
   nequi: Smartphone,
   daviplata: Wallet,
 };
-const METHODS = Object.keys(PAYMENT_LABELS) as PaymentMethod[];
+const METHODS = ACTIVE_PAYMENT_METHODS;
 
 export type MethodChange = { paymentMethod: PaymentMethod; cashReceived?: number; change?: number };
 
@@ -51,7 +51,7 @@ export function ChangeMethod({
   return (
     <fieldset className="flex flex-col gap-2">
       <legend className="mb-1 font-heading text-sm font-medium">¿Pagó con otro método? Cámbialo aquí ({formatCOP(total)} no cambia)</legend>
-      <div role="radiogroup" aria-label="Método de pago de la venta" className="grid grid-cols-3 gap-2">
+      <div role="radiogroup" aria-label="Método de pago de la venta" className="grid grid-cols-2 gap-2">
         {METHODS.map((m) => {
           const Icon = METHOD_ICON[m];
           const on = method === m;

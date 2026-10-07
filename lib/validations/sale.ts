@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PAYMENT_METHODS } from "@/models/Sale";
+import { ACTIVE_PAYMENT_METHODS } from "@/lib/money";
 
 export const objectId = z.string().regex(/^[a-f0-9]{24}$/, "Id inválido");
 const money = z.coerce.number().int().min(0).max(100_000_000);
@@ -17,7 +17,7 @@ export const saleInputSchema = z.object({
     )
     .min(1, "El carrito está vacío")
     .max(50),
-  paymentMethod: z.enum(PAYMENT_METHODS),
+  paymentMethod: z.enum(ACTIVE_PAYMENT_METHODS),
   cashReceived: money.optional(),
 });
 export type SaleInput = z.infer<typeof saleInputSchema>;
@@ -25,4 +25,4 @@ export type SaleInput = z.infer<typeof saleInputSchema>;
 export const openShiftSchema = z.object({ openingCash: money });
 export const closeShiftSchema = z.object({ countedCash: money });
 
-export const changeMethodSchema = z.object({ saleId: objectId, method: z.enum(PAYMENT_METHODS) });
+export const changeMethodSchema = z.object({ saleId: objectId, method: z.enum(ACTIVE_PAYMENT_METHODS) });

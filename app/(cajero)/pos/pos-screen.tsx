@@ -10,7 +10,7 @@ import { StockBadge } from "@/components/stock-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { type Option, unitPrice } from "@/lib/cash";
-import { formatCOP, PAYMENT_LABELS } from "@/lib/money";
+import { ACTIVE_PAYMENT_METHODS, formatCOP, PAYMENT_LABELS } from "@/lib/money";
 import { type ClientProduct, stockStatus } from "@/lib/serialize";
 import { cn } from "@/lib/utils";
 import type { PaymentMethod } from "@/models/Sale";
@@ -21,7 +21,7 @@ import { Ticket } from "./ticket";
 type Category = { id: string; name: string; color: string };
 type Line = { key: string; product: ClientProduct; variant?: string; addons: Option[]; unitPrice: number; qty: number };
 
-const METHODS = Object.keys(PAYMENT_LABELS) as PaymentMethod[];
+const METHODS = ACTIVE_PAYMENT_METHODS;
 const QUICK_CASH = [10000, 20000, 50000, 100000];
 
 function ProductCard({ product, color, inCart, onPick }: { product: ClientProduct; color?: string; inCart: number; onPick: () => void }) {
@@ -346,7 +346,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
             <span className="font-heading text-3xl font-semibold text-primary tabular-nums">{formatCOP(total)}</span>
           </div>
 
-          <div role="radiogroup" aria-label="Método de pago" className="grid grid-cols-3 gap-2">
+          <div role="radiogroup" aria-label="Método de pago" className="grid grid-cols-2 gap-2">
             {METHODS.map((m) => {
               const Icon = METHOD_ICON[m];
               const on = method === m;

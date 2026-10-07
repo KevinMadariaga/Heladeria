@@ -61,7 +61,7 @@ export async function GET(req: Request) {
     case "cierres": {
       const shifts = await shiftsInRange(range);
       csv = toCSV(
-        ["Cajero", "Apertura", "Cierre", "Base", "Efectivo", "Tarjeta", "Transferencia", "Nequi", "Daviplata", "Esperado", "Contado", "Diferencia", "Estado"],
+        ["Cajero", "Apertura", "Cierre", "Base", "Efectivo", "Transferencia", "Otros (tarjeta/Nequi/Daviplata)", "Esperado", "Contado", "Diferencia", "Estado"],
         shifts.map((s) => {
           const t = (m: string) => (s.totalsByMethod as Record<string, number> | undefined)?.[m] ?? 0;
           return [
@@ -70,10 +70,8 @@ export async function GET(req: Request) {
             s.closedAt ? formatDateTime(s.closedAt) : "",
             s.openingCash,
             t("cash"),
-            t("card"),
             t("transfer"),
-            t("nequi"),
-            t("daviplata"),
+            t("card") + t("nequi") + t("daviplata"),
             s.expectedCash,
             s.countedCash,
             s.difference,
