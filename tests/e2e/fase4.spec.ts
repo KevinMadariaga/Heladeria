@@ -88,3 +88,50 @@ test("admin descarga CSV; cajero no puede", async ({ page, browser }) => {
   expect(blocked.status()).not.toBe(200);
   await ctx.close();
 });
+
+test("devolver una venta: el stock se descuenta al vender y vuelve al anular; la caja también", async ({ page }) => {
+  await login(page, "admin", "123456");
+  const stock0 = await stockOf(page, "Paleta de fresa");
+
+  await page.goto("/pos");
+  if (await page.getByLabel("Base en efectivo (COP)").isVisible()) {
+    await page.getByLabel("Base en efectivo (COP)").fill("100000");
+    await page.getByRole("button", { name: "Abrir caja" }).click();
+  }
+  const esperado = async () => {
+    await page.goto("/pos/caja");
+    const t = await page.locator("dt", { hasText: /^Efectivo esperado$/ }).locator("+ dd").innerText();
+    return Number(t.replace(/\D/g, ""));
+  };
+  const caja0 = await esperado();
+
+  // Vende 2 paletas (4.000 c/u) en efectivo
+  await page.goto("/pos");
+  const card = page.getByRole("region", { name: "Productos" }).getByRole("button", { name: /Paleta de fresa/ });
+  await card.click();
+  await card.click();
+  const carrito = page.getByRole("complementary", { name: "Carrito" });
+  await carrito.getByRole("radio", { name: "Efectivo" }).click();
+  await carrito.getByRole("button", { name: /Cobrar \$\s?8\.000/ }).click();
+  const ticket = page.getByRole("dialog", { name: "Venta registrada" });
+  const number = (await ticket.getByText(/Venta #\d+/).innerText()).match(/#(\d+)/)![1];
+  await ticket.getByRole("button", { name: "Nueva venta" }).click();
+
+  expect(await stockOf(page, "Paleta de fresa")).toBe(stock0 - 2);
+  expect(await esperado()).toBe(caja0 + 8000);
+
+  // Devolución (anulación) desde Reportes
+  await page.goto("/admin/reportes");
+  const row = page.getByRole("row").filter({ has: page.getByRole("cell", { name: number, exact: true }) });
+  await row.getByRole("button", { name: "Anular" }).click();
+  const dialog = page.getByRole("dialog", { name: `Anular venta #${number}` });
+  await dialog.getByLabel("Motivo").fill("Cliente devolvió las paletas");
+  await dialog.getByRole("button", { name: "Anular venta" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(row.getByText("Anulada")).toBeVisible();
+
+  expect(await stockOf(page, "Paleta de fresa")).toBe(stock0);
+  expect(await esperado()).toBe(caja0);
+  await page.goto("/admin/inventario");
+  await expect(page.getByRole("cell", { name: /Anulación venta #\d+: Cliente devolvió las paletas/ }).first()).toBeVisible();
+});
