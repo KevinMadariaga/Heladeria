@@ -24,3 +24,5 @@ export type SaleInput = z.infer<typeof saleInputSchema>;
 
 export const openShiftSchema = z.object({ openingCash: money });
 export const closeShiftSchema = z.object({ countedCash: money });
+
+export const changeMethodSchema = z.object({ saleId: objectId, method: z.enum(PAYMENT_METHODS) });

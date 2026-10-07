@@ -103,7 +103,14 @@ export default async function ReportesPage({ searchParams }: PageProps<"/admin/r
                     <td className="py-2 pr-3 whitespace-nowrap">{formatDateTime(s.createdAt)}</td>
                     <td className="py-2 pr-3">{s.cashierName}</td>
                     <td className="max-w-xs py-2 pr-3">{s.items.map((i) => `${i.qty}× ${i.name}${i.variant ? ` (${i.variant})` : ""}`).join(", ")}</td>
-                    <td className="py-2 pr-3">{PAYMENT_LABELS[s.paymentMethod]}</td>
+                    <td className="py-2 pr-3">
+                      {PAYMENT_LABELS[s.paymentMethod]}
+                      {s.paymentChanges?.[0] && (
+                        <span className="block text-xs text-muted-foreground">
+                          antes {PAYMENT_LABELS[s.paymentChanges?.[0].from as keyof typeof PAYMENT_LABELS]}
+                        </span>
+                      )}
+                    </td>
                     <td className={`py-2 pr-3 text-right font-heading tabular-nums ${s.status === "voided" ? "line-through" : ""}`}>{formatCOP(s.total)}</td>
                     <td className="py-2 text-right">
                       {s.status === "paid" ? (

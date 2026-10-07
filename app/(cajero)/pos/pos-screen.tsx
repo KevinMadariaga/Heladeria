@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { AnimatePresence, motion, useAnimate } from "motion/react";
-import { Banknote, CreditCard, Minus, Plus, Search, ShoppingBag, Smartphone, Trash2, Wallet, type LucideIcon } from "lucide-react";
+import { Minus, Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
 import { Modal } from "@/components/modal";
 import { MoneyInput } from "@/components/money-input";
 import { ProductImage } from "@/components/product-image";
@@ -15,6 +15,7 @@ import { type ClientProduct, stockStatus } from "@/lib/serialize";
 import { cn } from "@/lib/utils";
 import type { PaymentMethod } from "@/models/Sale";
 import { submitSale, type TicketSale } from "./actions";
+import { ChangeMethod, METHOD_ICON } from "./change-method";
 import { Ticket } from "./ticket";
 
 type Category = { id: string; name: string; color: string };
@@ -22,7 +23,6 @@ type Line = { key: string; product: ClientProduct; variant?: string; addons: Opt
 
 const METHODS = Object.keys(PAYMENT_LABELS) as PaymentMethod[];
 const QUICK_CASH = [10000, 20000, 50000, 100000];
-const METHOD_ICON: Record<PaymentMethod, LucideIcon> = { cash: Banknote, card: CreditCard, nequi: Smartphone, daviplata: Wallet };
 
 function ProductCard({ product, color, inCart, onPick }: { product: ClientProduct; color?: string; inCart: number; onPick: () => void }) {
   const [scope, animate] = useAnimate();
@@ -346,7 +346,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
             <span className="font-heading text-3xl font-semibold text-primary tabular-nums">{formatCOP(total)}</span>
           </div>
 
-          <div role="radiogroup" aria-label="Método de pago" className="grid grid-cols-4 gap-2">
+          <div role="radiogroup" aria-label="Método de pago" className="grid grid-cols-3 gap-2">
             {METHODS.map((m) => {
               const Icon = METHOD_ICON[m];
               const on = method === m;
@@ -439,6 +439,13 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
         {ticket && (
           <div className="flex flex-col gap-5">
             <Ticket sale={ticket} />
+            <ChangeMethod
+              key={ticket.id}
+              saleId={ticket.id}
+              current={ticket.paymentMethod}
+              total={ticket.total}
+              onChanged={(c) => setTicket((t) => (t ? { ...t, ...c } : t))}
+            />
             <div className="flex gap-2">
               <Button type="button" variant="outline" className="h-12 flex-1 rounded-2xl" onClick={() => window.print()}>
                 Imprimir

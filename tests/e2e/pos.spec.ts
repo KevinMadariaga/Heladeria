@@ -1,4 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+test.describe.configure({ mode: "serial" });
 
 // Flujo completo con el cajero de prueba: abrir caja → vender → cerrar caja.
 test("cajero abre caja, vende y cierra cuadrado", async ({ page }) => {
@@ -45,6 +47,54 @@ test("cajero abre caja, vende y cierra cuadrado", async ({ page }) => {
   await page.getByRole("link", { name: "Caja" }).click();
   await expect(page.locator("dt", { hasText: "Efectivo esperado" }).locator("+ dd")).toHaveText(/67\.500/);
   await page.getByLabel("Efectivo contado (COP)").fill("67500");
+  await expect(page.getByText("Cuadra exacto ✓")).toBeVisible();
+  await page.getByRole("button", { name: "Cerrar caja" }).click();
+  await expect(page.getByRole("heading", { name: "Último cierre" })).toBeVisible();
+});
+
+async function loginCajeroConCajaAbierta(page: Page, base: string) {
+  await page.goto("/login");
+  await page.getByLabel("Usuario").fill("cajero.e2e");
+  await page.getByLabel("Contraseña").fill("cajero123");
+  await page.getByRole("button", { name: "Ingresar" }).click();
+  await expect(page).toHaveURL(/\/pos$/);
+  await page.getByLabel("Base en efectivo (COP)").fill(base);
+  await page.getByRole("button", { name: "Abrir caja" }).click();
+}
+
+const fila = (page: Page, label: string) => page.locator("dt", { hasText: new RegExp(`^${label}$`) }).locator("+ dd");
+
+test("cambiar método de pago después de cobrar: efectivo → transferencia → efectivo", async ({ page }) => {
+  await loginCajeroConCajaAbierta(page, "50000");
+
+  await page.getByRole("region", { name: "Productos" }).getByRole("button", { name: /Latte/ }).click();
+  await page.getByRole("complementary", { name: "Carrito" }).getByRole("button", { name: /Cobrar/ }).click();
+
+  const ticket = page.getByRole("dialog", { name: "Venta registrada" });
+  await expect(ticket.locator("#ticket")).toContainText("Efectivo");
+  await ticket.getByRole("radio", { name: "Transferencia" }).click();
+  await expect(ticket.getByRole("status")).toHaveText(/ahora figura como Transferencia/);
+  await expect(ticket.locator("#ticket")).toContainText("Transferencia");
+  await expect(ticket.locator("#ticket")).toContainText(/\$\s?7\.500/); // el total no cambia
+  await ticket.getByRole("button", { name: "Nueva venta" }).click();
+
+  // En caja la transferencia sale aparte y no suma al efectivo esperado
+  await page.getByRole("link", { name: "Caja" }).click();
+  await expect(fila(page, "Transferencia")).toHaveText(/7\.500/);
+  await expect(fila(page, "Efectivo")).toHaveText(/\$\s?0$/);
+  await expect(fila(page, "Efectivo esperado")).toHaveText(/50\.000/);
+  await expect(page.getByText("(cambiado)")).toBeVisible();
+
+  // Se puede corregir de nuevo desde la lista del turno
+  await page.getByRole("button", { name: "Cambiar pago" }).click();
+  const dialog = page.getByRole("dialog", { name: /Venta #\d+/ });
+  await dialog.getByRole("radio", { name: "Efectivo" }).click();
+  await expect(dialog.getByRole("status")).toHaveText(/ahora figura como Efectivo/);
+  await page.keyboard.press("Escape");
+  await page.reload();
+  await expect(fila(page, "Efectivo esperado")).toHaveText(/57\.500/);
+
+  await page.getByLabel("Efectivo contado (COP)").fill("57500");
   await expect(page.getByText("Cuadra exacto ✓")).toBeVisible();
   await page.getByRole("button", { name: "Cerrar caja" }).click();
   await expect(page.getByRole("heading", { name: "Último cierre" })).toBeVisible();

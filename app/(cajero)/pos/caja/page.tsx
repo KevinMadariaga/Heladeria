@@ -7,6 +7,7 @@ import { CashShift } from "@/models/CashShift";
 import { Sale } from "@/models/Sale";
 import { OpenShiftForm } from "../open-shift-form";
 import { CloseShiftForm } from "./close-shift-form";
+import { SaleMethodButton } from "./sale-method-button";
 
 export const metadata: Metadata = { title: "Caja" };
 
@@ -89,8 +90,12 @@ export default async function CajaPage() {
                 <span className="font-heading font-medium">#{s.number}</span>
                 <span className="text-sm text-muted-foreground">{formatDateTime(s.createdAt)}</span>
                 <span className="min-w-0 flex-1 truncate text-sm">{s.items.map((i) => `${i.qty}× ${i.name}`).join(", ")}</span>
-                <span className="text-sm">{PAYMENT_LABELS[s.paymentMethod]}</span>
+                <span className="text-sm">
+                  {PAYMENT_LABELS[s.paymentMethod]}
+                  {(s.paymentChanges?.length ?? 0) > 0 && <span className="text-muted-foreground"> (cambiado)</span>}
+                </span>
                 <span className="font-heading font-semibold">{formatCOP(s.total)}</span>
+                {s.status === "paid" && <SaleMethodButton saleId={String(s._id)} number={s.number} method={s.paymentMethod} total={s.total} />}
               </li>
             ))}
           </ul>

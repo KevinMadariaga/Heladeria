@@ -21,13 +21,14 @@ export async function GET(req: Request) {
     case "ventas": {
       const sales = await salesInRange(range);
       csv = toCSV(
-        ["Número", "Fecha", "Cajero", "Productos", "Método", "Total", "Recibido", "Cambio", "Estado", "Motivo anulación"],
+        ["Número", "Fecha", "Cajero", "Productos", "Método", "Método original", "Total", "Recibido", "Cambio", "Estado", "Motivo anulación"],
         sales.map((s) => [
           s.number,
           formatDateTime(s.createdAt),
           s.cashierName,
           s.items.map((i) => `${i.qty}x ${i.name}${i.variant ? ` (${i.variant})` : ""}`).join(", "),
           PAYMENT_LABELS[s.paymentMethod],
+          s.paymentChanges?.[0] ? PAYMENT_LABELS[s.paymentChanges?.[0].from as keyof typeof PAYMENT_LABELS] : "",
           s.total,
           s.cashReceived,
           s.change,
@@ -60,7 +61,7 @@ export async function GET(req: Request) {
     case "cierres": {
       const shifts = await shiftsInRange(range);
       csv = toCSV(
-        ["Cajero", "Apertura", "Cierre", "Base", "Efectivo", "Tarjeta", "Nequi", "Daviplata", "Esperado", "Contado", "Diferencia", "Estado"],
+        ["Cajero", "Apertura", "Cierre", "Base", "Efectivo", "Tarjeta", "Transferencia", "Nequi", "Daviplata", "Esperado", "Contado", "Diferencia", "Estado"],
         shifts.map((s) => {
           const t = (m: string) => (s.totalsByMethod as Record<string, number> | undefined)?.[m] ?? 0;
           return [
@@ -70,6 +71,7 @@ export async function GET(req: Request) {
             s.openingCash,
             t("cash"),
             t("card"),
+            t("transfer"),
             t("nequi"),
             t("daviplata"),
             s.expectedCash,

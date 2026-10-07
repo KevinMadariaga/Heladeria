@@ -4,7 +4,7 @@ import type { SaleInput } from "@/lib/validations/sale";
 import { CashShift } from "@/models/CashShift";
 import { Counter } from "@/models/Counter";
 import { Product } from "@/models/Product";
-import { Sale } from "@/models/Sale";
+import { type PaymentMethod, Sale } from "@/models/Sale";
 import { StockMovement } from "@/models/StockMovement";
 
 type Actor = { id: string; name: string };
@@ -163,4 +163,28 @@ export async function voidSaleTx(actor: Actor, saleId: string, reason: string) {
   } finally {
     await session.endSession();
   }
+}
+
+/**
+ * Cambia solo el método de pago de una venta pagada (p. ej. efectivo → transferencia).
+ * Productos, total y stock no se tocan. Solo mientras la caja de esa venta siga abierta,
+ * para que el cierre cuadre con lo que realmente entró. Queda registro en paymentChanges.
+ */
+export async function changePaymentMethod(actor: Actor & { role: "admin" | "cashier" }, saleId: string, method: PaymentMethod) {
+  const sale = await Sale.findById(saleId);
+  if (!sale || sale.status !== "paid") throw new BusinessError("La venta no existe o está anulada");
+  if (actor.role !== "admin" && String(sale.cashierId) !== actor.id) throw new BusinessError("Solo puedes cambiar tus propias ventas");
+  if (sale.paymentMethod === method) throw new BusinessError("La venta ya tiene ese método de pago");
+  if (!(await CashShift.exists({ _id: sale.shiftId, status: "open" }))) {
+    throw new BusinessError("La caja de esta venta ya se cerró; no se puede cambiar el método");
+  }
+  // A efectivo: se asume pago exacto. A otro método: sin efectivo recibido ni cambio.
+  const cash = method === "cash"
+    ? { $set: { paymentMethod: method, cashReceived: sale.total, change: 0 } }
+    : { $set: { paymentMethod: method }, $unset: { cashReceived: 1, change: 1 } };
+  const r = await Sale.updateOne(
+    { _id: sale._id, status: "paid", paymentMethod: sale.paymentMethod },
+    { ...cash, $push: { paymentChanges: { from: sale.paymentMethod, to: method, by: actor.id } } },
+  );
+  if (r.modifiedCount !== 1) throw new BusinessError("La venta cambió mientras tanto, intenta de nuevo");
 }

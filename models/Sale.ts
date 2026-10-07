@@ -1,6 +1,6 @@
 import { type InferSchemaType, Schema, model, models, type Model } from "mongoose";
 
-export const PAYMENT_METHODS = ["cash", "card", "nequi", "daviplata"] as const;
+export const PAYMENT_METHODS = ["cash", "card", "transfer", "nequi", "daviplata"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 const option = new Schema({ name: String, price: Number }, { _id: false });
@@ -31,6 +31,11 @@ const saleSchema = new Schema({
   change: Number,
   status: { type: String, enum: ["paid", "voided"], default: "paid" },
   voidReason: String,
+  // Historial de cambios de método de pago (la venta en sí no cambia).
+  paymentChanges: {
+    type: [new Schema({ from: String, to: String, at: { type: Date, default: Date.now }, by: { type: Schema.Types.ObjectId, ref: "User" } }, { _id: false })],
+    default: [],
+  },
   voidedAt: Date,
   voidedBy: { type: Schema.Types.ObjectId, ref: "User" },
   createdAt: { type: Date, default: Date.now },

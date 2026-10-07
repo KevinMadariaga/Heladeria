@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth-guard";
 import { BusinessError } from "@/lib/cash";
-import { closeShift, createSaleTx, openShift } from "@/lib/sales";
-import { closeShiftSchema, openShiftSchema, saleInputSchema } from "@/lib/validations/sale";
+import { changePaymentMethod, closeShift, createSaleTx, openShift } from "@/lib/sales";
+import { changeMethodSchema, closeShiftSchema, openShiftSchema, saleInputSchema } from "@/lib/validations/sale";
 import { Sale } from "@/models/Sale";
 
 export type FormState = { ok?: boolean; error?: string } | undefined;
@@ -20,6 +20,7 @@ export async function submitSale(raw: unknown) {
     revalidatePath("/pos", "layout");
     return {
       sale: {
+        id: id,
         number: s.number,
         createdAt: s.createdAt.toISOString(),
         cashierName: s.cashierName,
@@ -69,4 +70,21 @@ export async function closeShiftAction(_prev: FormState, formData: FormData): Pr
   }
   revalidatePath("/pos", "layout");
   return { ok: true };
+}
+
+/** Cambia el método de pago de una venta ya cobrada (sin tocar productos, total ni stock). */
+export async function changePaymentAction(raw: unknown) {
+  const user = await requireRole("admin", "cashier");
+  const parsed = changeMethodSchema.safeParse(raw);
+  if (!parsed.success) return { error: "Método inválido" };
+  try {
+    await changePaymentMethod(user, parsed.data.saleId, parsed.data.method);
+  } catch (err) {
+    if (err instanceof BusinessError) return { error: err.message };
+    throw err;
+  }
+  const s = (await Sale.findById(parsed.data.saleId).lean())!;
+  revalidatePath("/pos", "layout");
+  revalidatePath("/admin", "layout");
+  return { ok: true, paymentMethod: s.paymentMethod, cashReceived: s.cashReceived ?? undefined, change: s.change ?? undefined };
 }
