@@ -239,7 +239,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
             className="h-12 rounded-full border-2 border-white bg-card pl-11 text-base shadow-[var(--sticker-shadow)]"
           />
         </div>
-        <div role="group" aria-label="Categorías" className="-mx-3 flex gap-2 overflow-x-auto px-3 pt-1 pb-2 sm:-mx-4 sm:px-4">
+        <div role="group" aria-label="Categorías" className="grid grid-cols-3 gap-2 pt-1 pb-1 sm:grid-cols-5">
           {[{ id: "all", name: "Todo", color: "var(--uva-700)" }, ...categories].map((c) => {
             const on = cat === c.id;
             return (
@@ -247,14 +247,15 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                 key={c.id}
                 type="button"
                 aria-pressed={on}
+                title={c.name}
                 onClick={() => setCat(c.id)}
                 className={cn(
-                  "flex h-11 shrink-0 items-center gap-2 rounded-full border-2 px-4 font-heading text-base transition-[background-color,color,transform] duration-150 active:scale-[0.97]",
+                  "flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-full border-2 px-2 font-heading text-sm transition-[background-color,color,transform] duration-150 active:scale-[0.97] sm:text-base",
                   on ? "border-white bg-primary text-primary-foreground shadow-[0_3px_0_var(--press-shadow)]" : "border-white bg-card text-foreground shadow-sm",
                 )}
               >
-                <span aria-hidden className="size-3 rounded-full ring-2 ring-white" style={{ background: c.color }} />
-                {c.name}
+                <span aria-hidden className="size-3 shrink-0 rounded-full ring-2 ring-white" style={{ background: c.color }} />
+                <span className="truncate">{c.name}</span>
               </button>
             );
           })}
