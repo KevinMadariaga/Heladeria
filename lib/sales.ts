@@ -41,8 +41,9 @@ export async function createSaleTx(actor: Actor, input: SaleInput) {
           subtotal: priced.unitPrice * i.qty,
         };
       });
-      // El valor del domicilio se cobra junto con los productos.
-      const total = items.reduce((s, i) => s + i.subtotal, 0) + (input.delivery?.fee ?? 0);
+      // El domicilio y el porta/envase se cobran junto con los productos.
+      const containerFee = input.containerFee || undefined;
+      const total = items.reduce((s, i) => s + i.subtotal, 0) + (input.delivery?.fee ?? 0) + (containerFee ?? 0);
       const pay = splitPayment(input.paymentMethod, total, { cashReceived: input.cashReceived, transferAmount: input.transferAmount });
 
       // Agrupa unidades por producto con control de stock y descuenta de forma condicional.
@@ -77,6 +78,7 @@ export async function createSaleTx(actor: Actor, input: SaleInput) {
             payments: pay.payments,
             cashReceived: pay.cashReceived,
             change: pay.change,
+            containerFee,
             delivery: input.delivery && { ...input.delivery, status: "pending", updatedAt: new Date() },
           },
         ],
@@ -121,7 +123,7 @@ export const PAYMENTS_EXPR = { $ifNull: ["$payments", [{ method: "$paymentMethod
 export async function shiftTotals(shiftId: mongoose.Types.ObjectId | string) {
   const [r] = await Sale.aggregate<{
     byMethod: { _id: string; total: number }[];
-    sales: { count: number; deliveryFees: number; deliveryCount: number }[];
+    sales: { count: number; deliveryFees: number; deliveryCount: number; containerFees: number; containerCount: number }[];
   }>([
     { $match: { shiftId: new mongoose.Types.ObjectId(String(shiftId)), status: "paid" } },
     {
@@ -138,6 +140,8 @@ export async function shiftTotals(shiftId: mongoose.Types.ObjectId | string) {
               count: { $sum: 1 },
               deliveryFees: { $sum: { $ifNull: ["$delivery.fee", 0] } },
               deliveryCount: { $sum: { $cond: [{ $ifNull: ["$delivery", false] }, 1, 0] } },
+              containerFees: { $sum: { $ifNull: ["$containerFee", 0] } },
+              containerCount: { $sum: { $cond: [{ $gt: [{ $ifNull: ["$containerFee", 0] }, 0] }, 1, 0] } },
             },
           },
         ],
@@ -146,7 +150,14 @@ export async function shiftTotals(shiftId: mongoose.Types.ObjectId | string) {
   ]);
   const totalsByMethod = Object.fromEntries((r?.byMethod ?? []).map((x) => [x._id, x.total])) as Record<string, number>;
   const s = r?.sales[0];
-  return { totalsByMethod, salesCount: s?.count ?? 0, deliveryFees: s?.deliveryFees ?? 0, deliveryCount: s?.deliveryCount ?? 0 };
+  return {
+    totalsByMethod,
+    salesCount: s?.count ?? 0,
+    deliveryFees: s?.deliveryFees ?? 0,
+    deliveryCount: s?.deliveryCount ?? 0,
+    containerFees: s?.containerFees ?? 0,
+    containerCount: s?.containerCount ?? 0,
+  };
 }
 
 /**
@@ -156,7 +167,7 @@ export async function shiftTotals(shiftId: mongoose.Types.ObjectId | string) {
 export async function closeShift(actor: Actor, counted: { cash: number; transfer: number }, note?: string) {
   const shift = await CashShift.findOne({ cashierId: actor.id, status: "open" });
   if (!shift) throw new BusinessError("No tienes una caja abierta");
-  const { totalsByMethod, salesCount, deliveryFees, deliveryCount } = await shiftTotals(shift._id);
+  const { totalsByMethod, salesCount, deliveryFees, deliveryCount, containerFees, containerCount } = await shiftTotals(shift._id);
   const t = closeShiftTotals(shift.openingCash, totalsByMethod, counted);
   if ((t.difference !== 0 || t.transferDifference !== 0) && !note?.trim()) {
     throw new BusinessError("La caja no cuadra: revisa el conteo o escribe una nota explicando la diferencia");
@@ -177,6 +188,8 @@ export async function closeShift(actor: Actor, counted: { cash: number; transfer
       salesCount,
       deliveryFees,
       deliveryCount,
+      containerFees,
+      containerCount,
     },
   );
   if (r.modifiedCount !== 1) throw new BusinessError("La caja ya fue cerrada");

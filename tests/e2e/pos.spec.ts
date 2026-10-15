@@ -153,7 +153,7 @@ test("pago mixto + domicilio + cierre que no cuadra exige nota", async ({ page }
   await expect(ticket.locator("#ticket")).toContainText(/Transferencia\s*\$\s?5\.000/);
   await ticket.getByRole("button", { name: "Nueva venta" }).click();
 
-  // 2) Domicilio: Cono doble $8.000 + domicilio $3.000 = $11.000 por transferencia
+  // 2) Domicilio: Cono doble $8.000 + porta $1.000 + domicilio $3.000 = $12.000 por transferencia
   await productos.getByRole("button", { name: /Cono doble/ }).click();
   await page.getByRole("dialog", { name: "Cono doble" }).getByRole("button", { name: /Agregar · \$\s?8\.000/ }).click(); // tiene toppings: abre opciones
   await carrito.getByLabel("Es domicilio").check();
@@ -162,11 +162,14 @@ test("pago mixto + domicilio + cierre que no cuadra exige nota", async ({ page }
   await carrito.getByLabel("Dirección *").fill("Calle 10 # 5-20");
   await carrito.getByLabel("Teléfono").fill("3001234567");
   await carrito.getByLabel("Valor domicilio").fill("3000");
+  await carrito.getByLabel("Porta / envase").fill("1000");
   await carrito.getByRole("radio", { name: "Transferencia" }).click();
-  await carrito.getByRole("button", { name: /Cobrar \$\s?11\.000/ }).click();
+  await carrito.getByRole("button", { name: /Cobrar \$\s?12\.000/ }).click();
   ticket = page.getByRole("dialog", { name: "Venta registrada" });
   await expect(ticket.locator("#ticket")).toContainText("Laura Gómez");
   await expect(ticket.locator("#ticket")).toContainText(/Domicilio\s*\$\s?3\.000/);
+  await expect(ticket.locator("#ticket")).toContainText(/Porta \/ envase\s*\$\s?1\.000/);
+  await expect(ticket.locator("#ticket")).toContainText(/Productos\s*\$\s?8\.000/);
   await ticket.getByRole("button", { name: "Nueva venta" }).click();
 
   // 3) Seguimiento del domicilio
@@ -178,18 +181,20 @@ test("pago mixto + domicilio + cierre que no cuadra exige nota", async ({ page }
   await page.getByRole("listitem").filter({ hasText: "Laura Gómez" }).getByRole("button", { name: "Marcar entregado" }).click();
   await expect(page.getByRole("region", { name: /Entregado/ }).getByText("Laura Gómez")).toBeVisible();
 
-  // 4) Caja: efectivo = base 20.000 + 2.500 ; transferencias = 5.000 + 11.000 ; total vendido 18.500
+  // 4) Caja: efectivo = base 20.000 + 2.500 ; transferencias = 5.000 + 12.000 ; total vendido 19.500
   await page.getByRole("link", { name: "Caja" }).click();
   await expect(fila(page, "Ventas en efectivo")).toHaveText(/2\.500/);
-  await expect(fila(page, "Ventas por transferencia")).toHaveText(/16\.000/);
-  await expect(fila(page, "Total vendido")).toHaveText(/18\.500/);
+  await expect(fila(page, "Ventas por transferencia")).toHaveText(/17\.000/);
+  await expect(fila(page, "Portas / envases")).toHaveText(/1\.000/);
+  await expect(fila(page, "Domicilios")).toHaveText(/3\.000/);
+  await expect(fila(page, "Total vendido")).toHaveText(/19\.500/);
   await expect(fila(page, "Debes tener en efectivo")).toHaveText(/22\.500/);
-  await expect(fila(page, "Debes tener en transferencias")).toHaveText(/16\.000/);
-  await expect(fila(page, "Total con la base")).toHaveText(/38\.500/);
+  await expect(fila(page, "Debes tener en transferencias")).toHaveText(/17\.000/);
+  await expect(fila(page, "Total con la base")).toHaveText(/39\.500/);
 
   // 5) Cierre con faltante de $500 en efectivo: pide nota antes de cerrar
   await page.getByLabel("Efectivo contado (COP)").fill("22000");
-  await page.getByLabel("Transferencias recibidas (COP)").fill("16000");
+  await page.getByLabel("Transferencias recibidas (COP)").fill("17000");
   await expect(page.getByText(/Falta \$\s?500/)).toBeVisible();
   await expect(page.getByText("La caja no cuadra", { exact: false })).toBeVisible();
   await page.getByLabel("Nota (obligatoria)").fill("Se dio mal un cambio");

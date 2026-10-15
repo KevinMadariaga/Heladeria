@@ -15,6 +15,8 @@ const cashShiftSchema = new Schema({
   closeNote: String, // obligatoria si sobra o falta dinero
   deliveryFees: Number,
   deliveryCount: Number,
+  containerFees: Number,
+  containerCount: Number,
   totalsByMethod: { type: Map, of: Number },
   salesCount: Number,
   status: { type: String, enum: ["open", "closed"], default: "open" },

@@ -33,6 +33,18 @@ export function Ticket({ sale }: { sale: TicketSale }) {
           <span>{formatCOP(i.subtotal)}</span>
         </div>
       ))}
+      {(sale.containerFee > 0 || (sale.delivery?.fee ?? 0) > 0) && (
+        <div className="flex justify-between border-t border-dashed border-current pt-1">
+          <span>Productos</span>
+          <span>{formatCOP(sale.items.reduce((s, i) => s + i.subtotal, 0))}</span>
+        </div>
+      )}
+      {sale.containerFee > 0 && (
+        <div className="flex justify-between">
+          <span>Porta / envase</span>
+          <span>{formatCOP(sale.containerFee)}</span>
+        </div>
+      )}
       {sale.delivery && sale.delivery.fee > 0 && (
         <div className="flex justify-between">
           <span>Domicilio</span>

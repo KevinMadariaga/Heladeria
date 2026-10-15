@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     case "ventas": {
       const sales = await salesInRange(range);
       csv = toCSV(
-        ["Número", "Fecha", "Cajero", "Productos", "Método", "Método original", "Total", "En efectivo", "Por transferencia", "Recibido", "Cambio", "Domicilio", "Cliente", "Dirección", "Teléfono", "Estado", "Motivo anulación"],
+        ["Número", "Fecha", "Cajero", "Productos", "Método", "Método original", "Total", "En efectivo", "Por transferencia", "Recibido", "Cambio", "Porta/envase", "Domicilio", "Cliente", "Dirección", "Teléfono", "Estado", "Motivo anulación"],
         sales.map((s) => [
           s.number,
           formatDateTime(s.createdAt),
@@ -38,6 +38,7 @@ export async function GET(req: Request) {
           part(s, "transfer"),
           s.cashReceived,
           s.change,
+          s.containerFee,
           s.delivery?.fee,
           s.delivery?.customer,
           s.delivery?.address,
@@ -71,7 +72,7 @@ export async function GET(req: Request) {
     case "cierres": {
       const shifts = await shiftsInRange(range);
       csv = toCSV(
-        ["Cajero", "Apertura", "Cierre", "Base", "Ventas efectivo", "Ventas transferencia", "Otros (tarjeta/Nequi/Daviplata)", "Ventas totales", "Domicilios", "Efectivo esperado", "Efectivo contado", "Diferencia efectivo", "Transferencia esperada", "Transferencia verificada", "Diferencia transferencia", "Nota", "Estado"],
+        ["Cajero", "Apertura", "Cierre", "Base", "Ventas efectivo", "Ventas transferencia", "Otros (tarjeta/Nequi/Daviplata)", "Ventas totales", "Portas/envases", "Domicilios", "Efectivo esperado", "Efectivo contado", "Diferencia efectivo", "Transferencia esperada", "Transferencia verificada", "Diferencia transferencia", "Nota", "Estado"],
         shifts.map((s) => {
           const t = (m: string) => (s.totalsByMethod as Record<string, number> | undefined)?.[m] ?? 0;
           return [
@@ -83,6 +84,7 @@ export async function GET(req: Request) {
             t("transfer"),
             t("card") + t("nequi") + t("daviplata"),
             Object.values((s.totalsByMethod ?? {}) as Record<string, number>).reduce((a, b) => a + b, 0),
+            s.containerFees,
             s.deliveryFees,
             s.expectedCash,
             s.countedCash,

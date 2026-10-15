@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { AnimatePresence, motion, useAnimate } from "motion/react";
-import { Bike, Minus, Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
+import { Bike, CupSoda, Minus, Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
 import { Modal } from "@/components/modal";
 import { MoneyInput } from "@/components/money-input";
 import { ProductImage } from "@/components/product-image";
@@ -163,6 +163,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
   const [method, setMethod] = useState<PaymentMethod>("cash");
   const [cashReceived, setCashReceived] = useState("");
   const [transferAmount, setTransferAmount] = useState("");
+  const [containerFeeInput, setContainerFeeInput] = useState("");
   const [isDelivery, setIsDelivery] = useState(false);
   const [delivery, setDelivery] = useState({ customer: "", phone: "", address: "", notes: "", fee: "" });
   const setDel = (k: keyof typeof delivery) => (v: string) => setDelivery((d) => ({ ...d, [k]: v }));
@@ -189,7 +190,8 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
 
   const itemsTotal = cart.reduce((s, l) => s + l.unitPrice * l.qty, 0);
   const fee = isDelivery ? Number(delivery.fee || 0) : 0;
-  const total = itemsTotal + fee;
+  const containerFee = Number(containerFeeInput || 0);
+  const total = itemsTotal + fee + containerFee;
   const units = cart.reduce((s, l) => s + l.qty, 0);
   const transfer = Number(transferAmount || 0);
   // Parte que se paga en efectivo: todo (efectivo), el resto de la transferencia (mixto) o nada.
@@ -227,6 +229,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
         paymentMethod: method,
         cashReceived: takesCash && cashReceived !== "" ? received : undefined,
         transferAmount: method === "mixed" ? transfer : undefined,
+        containerFee: containerFee || undefined,
         delivery: isDelivery
           ? {
               customer: delivery.customer,
@@ -243,6 +246,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
       setCashReceived("");
       setTransferAmount("");
       setMethod("cash");
+      setContainerFeeInput("");
       setIsDelivery(false);
       setDelivery({ customer: "", phone: "", address: "", notes: "", fee: "" });
     });
@@ -369,6 +373,12 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
           )}
 
           <div className="flex flex-col gap-3 border-t-2 border-dashed border-border pt-3">
+            <div className="flex items-center justify-between gap-3 rounded-2xl bg-lila-100/70 px-3 py-1.5">
+              <Label htmlFor="container-fee" className="flex items-center gap-2 font-heading text-base">
+                <CupSoda aria-hidden className="size-5 text-primary" /> Porta / envase
+              </Label>
+              <MoneyInput id="container-fee" value={containerFeeInput} onValueChange={setContainerFeeInput} className="h-10 w-32 bg-card" />
+            </div>
             <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl bg-lila-100/70 px-3 py-2.5 has-focus-visible:ring-4 has-focus-visible:ring-ring">
               <span className="flex items-center gap-2 font-heading">
                 <Bike aria-hidden className="size-5 text-primary" /> Es domicilio
@@ -401,16 +411,24 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
             )}
           </div>
 
-          {fee > 0 && (
+          {(fee > 0 || containerFee > 0) && (
             <dl className="flex flex-col gap-0.5 text-sm text-muted-foreground">
               <div className="flex justify-between">
                 <dt>Productos</dt>
                 <dd className="tabular-nums">{formatCOP(itemsTotal)}</dd>
               </div>
-              <div className="flex justify-between">
-                <dt>Domicilio</dt>
-                <dd className="tabular-nums">{formatCOP(fee)}</dd>
-              </div>
+              {containerFee > 0 && (
+                <div className="flex justify-between">
+                  <dt>Porta / envase</dt>
+                  <dd className="tabular-nums">{formatCOP(containerFee)}</dd>
+                </div>
+              )}
+              {fee > 0 && (
+                <div className="flex justify-between">
+                  <dt>Domicilio</dt>
+                  <dd className="tabular-nums">{formatCOP(fee)}</dd>
+                </div>
+              )}
             </dl>
           )}
           <div className="flex items-baseline justify-between">

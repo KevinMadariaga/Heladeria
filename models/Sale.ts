@@ -47,6 +47,8 @@ const saleSchema = new Schema({
     ),
     default: undefined,
   },
+  // Valor del porta / envase (incluido en `total`).
+  containerFee: Number,
   cashReceived: Number,
   change: Number,
   status: { type: String, enum: ["paid", "voided"], default: "paid" },

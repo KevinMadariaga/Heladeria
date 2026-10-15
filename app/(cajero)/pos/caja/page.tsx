@@ -33,6 +33,8 @@ export default async function CajaPage() {
                 salesCount={last.salesCount ?? 0}
                 deliveryFees={last.deliveryFees ?? 0}
                 deliveryCount={last.deliveryCount ?? 0}
+                containerFees={last.containerFees ?? 0}
+                containerCount={last.containerCount ?? 0}
               />
               <CloseResult
                 expectedCash={last.expectedCash ?? 0}
@@ -51,7 +53,7 @@ export default async function CajaPage() {
     );
   }
 
-  const [{ totalsByMethod, salesCount, deliveryFees, deliveryCount }, sales] = await Promise.all([
+  const [{ totalsByMethod, salesCount, deliveryFees, deliveryCount, containerFees, containerCount }, sales] = await Promise.all([
     shiftTotals(shift._id),
     Sale.find({ shiftId: shift._id }).sort({ createdAt: -1 }).lean(),
   ]);
@@ -75,6 +77,8 @@ export default async function CajaPage() {
           salesCount={salesCount}
           deliveryFees={deliveryFees}
           deliveryCount={deliveryCount}
+          containerFees={containerFees}
+          containerCount={containerCount}
         />
         <CloseShiftForm expectedCash={expectedCash} expectedTransfer={expectedTransfer} />
       </section>
