@@ -51,8 +51,8 @@ test("admin: anular venta devuelve el stock y sale de los reportes", async ({ pa
   }
   await page.getByRole("button", { name: /Brownie/ }).click();
   const carrito = page.getByRole("complementary", { name: "Carrito" });
-  // Solo se cobra en efectivo o transferencia
-  await expect(carrito.getByRole("radiogroup", { name: "Método de pago" }).getByRole("radio")).toHaveText(["Efectivo", "Transferencia"]);
+  // Se cobra en efectivo, transferencia o mixto (sin tarjeta/Nequi/Daviplata)
+  await expect(carrito.getByRole("radiogroup", { name: "Método de pago" }).getByRole("radio")).toHaveText(["Efectivo", "Transferencia", "Mixto"]);
   await carrito.getByRole("radio", { name: "Transferencia" }).click();
   await carrito.getByRole("button", { name: /Cobrar/ }).click();
   const ticket = page.getByRole("dialog", { name: "Venta registrada" });
@@ -100,7 +100,7 @@ test("devolver una venta: el stock se descuenta al vender y vuelve al anular; la
   }
   const esperado = async () => {
     await page.goto("/pos/caja");
-    const t = await page.locator("dt", { hasText: /^Efectivo esperado$/ }).locator("+ dd").innerText();
+    const t = await page.locator("dt", { hasText: /^Debes tener en efectivo/ }).locator("+ dd").innerText();
     return Number(t.replace(/\D/g, ""));
   };
   const caja0 = await esperado();

@@ -1,6 +1,7 @@
 import "server-only";
 import { connectDB } from "@/lib/db";
 import { addPeriods, startOf, TZ, type Unit } from "@/lib/periods";
+import { PAYMENTS_EXPR } from "@/lib/sales";
 import { Sale } from "@/models/Sale";
 
 const PAID = { status: "paid" } as const;
@@ -63,7 +64,10 @@ export async function byPaymentMethod(unit: Unit) {
   await connectDB();
   return Sale.aggregate<{ method: string; total: number; tickets: number }>([
     { $match: { ...PAID, createdAt: { $gte: startOf(unit) } } },
-    { $group: { _id: "$paymentMethod", total: { $sum: "$total" }, tickets: { $sum: 1 } } },
+    // Un pago mixto reparte su total entre efectivo y transferencia.
+    { $project: { p: PAYMENTS_EXPR } },
+    { $unwind: "$p" },
+    { $group: { _id: "$p.method", total: { $sum: "$p.amount" }, tickets: { $sum: 1 } } },
     { $sort: { total: -1 } },
     { $project: { _id: 0, method: "$_id", total: 1, tickets: 1 } },
   ]);

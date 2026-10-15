@@ -9,6 +9,12 @@ const cashShiftSchema = new Schema({
   countedCash: Number,
   expectedCash: Number,
   difference: Number,
+  countedTransfer: Number,
+  expectedTransfer: Number,
+  transferDifference: Number,
+  closeNote: String, // obligatoria si sobra o falta dinero
+  deliveryFees: Number,
+  deliveryCount: Number,
   totalsByMethod: { type: Map, of: Number },
   salesCount: Number,
   status: { type: String, enum: ["open", "closed"], default: "open" },

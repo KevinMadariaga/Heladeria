@@ -2,6 +2,19 @@ import { expect, test, type Page } from "@playwright/test";
 
 test.describe.configure({ mode: "serial" });
 
+// El <dt> trae una ayuda debajo del título: se compara solo el inicio.
+const fila = (page: Page, label: string) => page.locator("dt", { hasText: new RegExp(`^${label}`) }).locator("+ dd");
+const pesos = async (page: Page, label: string) => Number((await fila(page, label).innerText()).replace(/\D/g, ""));
+
+/** Cierra la caja contando exactamente lo esperado (efectivo y transferencias). */
+async function cerrarCuadrado(page: Page) {
+  await page.getByLabel("Efectivo contado (COP)").fill(String(await pesos(page, "Debes tener en efectivo")));
+  await page.getByLabel("Transferencias recibidas (COP)").fill(String(await pesos(page, "Debes tener en transferencias")));
+  await expect(page.getByText("Cuadra exacto ✓")).toHaveCount(2);
+  await page.getByRole("button", { name: "Cerrar caja" }).click();
+  await expect(page.getByRole("heading", { name: "Último cierre" })).toBeVisible();
+}
+
 // Flujo completo con el cajero de prueba: abrir caja → vender → cerrar caja.
 test("cajero abre caja, vende y cierra cuadrado", async ({ page }) => {
   await page.goto("/login");
@@ -13,9 +26,7 @@ test("cajero abre caja, vende y cierra cuadrado", async ({ page }) => {
   // Si quedó una caja abierta de una corrida anterior, la cierra primero.
   if (await page.getByRole("searchbox", { name: "Buscar producto" }).isVisible()) {
     await page.goto("/pos/caja");
-    const esperado = await page.locator("dt", { hasText: "Efectivo esperado" }).locator("+ dd").innerText();
-    await page.getByLabel("Efectivo contado (COP)").fill(esperado.replace(/\D/g, ""));
-    await page.getByRole("button", { name: "Cerrar caja" }).click();
+    await cerrarCuadrado(page);
     await page.goto("/pos");
   }
 
@@ -45,11 +56,9 @@ test("cajero abre caja, vende y cierra cuadrado", async ({ page }) => {
 
   // Cierre: base 50.000 + efectivo 17.500 = 67.500
   await page.getByRole("link", { name: "Caja" }).click();
-  await expect(page.locator("dt", { hasText: "Efectivo esperado" }).locator("+ dd")).toHaveText(/67\.500/);
-  await page.getByLabel("Efectivo contado (COP)").fill("67500");
-  await expect(page.getByText("Cuadra exacto ✓")).toBeVisible();
-  await page.getByRole("button", { name: "Cerrar caja" }).click();
-  await expect(page.getByRole("heading", { name: "Último cierre" })).toBeVisible();
+  await expect(fila(page, "Debes tener en efectivo")).toHaveText(/67\.500/);
+  await expect(fila(page, "Total con la base")).toHaveText(/67\.500/);
+  await cerrarCuadrado(page);
 });
 
 async function loginCajeroConCajaAbierta(page: Page, base: string) {
@@ -62,7 +71,6 @@ async function loginCajeroConCajaAbierta(page: Page, base: string) {
   await page.getByRole("button", { name: "Abrir caja" }).click();
 }
 
-const fila = (page: Page, label: string) => page.locator("dt", { hasText: new RegExp(`^${label}$`) }).locator("+ dd");
 
 test("cambiar método de pago después de cobrar: efectivo → transferencia → efectivo", async ({ page }) => {
   await loginCajeroConCajaAbierta(page, "50000");
@@ -80,9 +88,10 @@ test("cambiar método de pago después de cobrar: efectivo → transferencia →
 
   // En caja la transferencia sale aparte y no suma al efectivo esperado
   await page.getByRole("link", { name: "Caja" }).click();
-  await expect(fila(page, "Transferencia")).toHaveText(/7\.500/);
-  await expect(fila(page, "Efectivo")).toHaveText(/\$\s?0$/);
-  await expect(fila(page, "Efectivo esperado")).toHaveText(/50\.000/);
+  await expect(fila(page, "Ventas por transferencia")).toHaveText(/7\.500/);
+  await expect(fila(page, "Ventas en efectivo")).toHaveText(/\$\s?0$/);
+  await expect(fila(page, "Debes tener en efectivo")).toHaveText(/50\.000/);
+  await expect(fila(page, "Debes tener en transferencias")).toHaveText(/7\.500/);
   await expect(page.getByText("(cambiado)")).toBeVisible();
 
   // Se puede corregir de nuevo desde la lista del turno
@@ -92,12 +101,8 @@ test("cambiar método de pago después de cobrar: efectivo → transferencia →
   await expect(dialog.getByRole("status")).toHaveText(/ahora figura como Efectivo/);
   await page.keyboard.press("Escape");
   await page.reload();
-  await expect(fila(page, "Efectivo esperado")).toHaveText(/57\.500/);
-
-  await page.getByLabel("Efectivo contado (COP)").fill("57500");
-  await expect(page.getByText("Cuadra exacto ✓")).toBeVisible();
-  await page.getByRole("button", { name: "Cerrar caja" }).click();
-  await expect(page.getByRole("heading", { name: "Último cierre" })).toBeVisible();
+  await expect(fila(page, "Debes tener en efectivo")).toHaveText(/57\.500/);
+  await cerrarCuadrado(page);
 });
 
 test("cajero devuelve una venta de su turno: vuelve el stock y el efectivo", async ({ page }) => {
@@ -116,18 +121,80 @@ test("cajero devuelve una venta de su turno: vuelve el stock y el efectivo", asy
   expect(await stockTorta()).toBe(stock0 - 1);
 
   await page.goto("/pos/caja");
-  await expect(fila(page, "Efectivo esperado")).toHaveText(/38\.000/);
+  await expect(fila(page, "Debes tener en efectivo")).toHaveText(/38\.000/);
   await page.getByRole("button", { name: "Devolver" }).click();
   const dialog = page.getByRole("dialog", { name: /Devolver venta #\d+/ });
   await dialog.getByLabel("Motivo").fill("Se le cayó al cliente");
   await dialog.getByRole("button", { name: "Devolver venta" }).click();
   await expect(dialog).toBeHidden();
   await expect(page.getByText("Devuelta: Se le cayó al cliente")).toBeVisible();
-  await expect(fila(page, "Efectivo esperado")).toHaveText(/30\.000/);
+  await expect(fila(page, "Debes tener en efectivo")).toHaveText(/30\.000/);
   expect(await stockTorta()).toBe(stock0);
 
   await page.goto("/pos/caja");
-  await page.getByLabel("Efectivo contado (COP)").fill("30000");
-  await page.getByRole("button", { name: "Cerrar caja" }).click();
+  await cerrarCuadrado(page);
+});
+
+test("pago mixto + domicilio + cierre que no cuadra exige nota", async ({ page }) => {
+  await loginCajeroConCajaAbierta(page, "20000");
+  const productos = page.getByRole("region", { name: "Productos" });
+  const carrito = page.getByRole("complementary", { name: "Carrito" });
+
+  // 1) Latte $7.500 en pago mixto: $5.000 transferencia + $2.500 efectivo (paga con $10.000 → cambio $7.500)
+  await productos.getByRole("button", { name: /Latte/ }).click();
+  await carrito.getByRole("radio", { name: "Mixto" }).click();
+  await carrito.getByLabel("Valor por transferencia").fill("5000");
+  await expect(carrito.getByText(/En efectivo: \$\s?2\.500/)).toBeVisible();
+  await carrito.getByLabel("Efectivo recibido (vacío = exacto)").fill("10000");
+  await expect(carrito.getByText(/Cambio: \$\s?7\.500/)).toBeVisible();
+  await carrito.getByRole("button", { name: /Cobrar \$\s?7\.500/ }).click();
+  let ticket = page.getByRole("dialog", { name: "Venta registrada" });
+  await expect(ticket.locator("#ticket")).toContainText("Mixto");
+  await expect(ticket.locator("#ticket")).toContainText(/Transferencia\s*\$\s?5\.000/);
+  await ticket.getByRole("button", { name: "Nueva venta" }).click();
+
+  // 2) Domicilio: Cono doble $8.000 + domicilio $3.000 = $11.000 por transferencia
+  await productos.getByRole("button", { name: /Cono doble/ }).click();
+  await page.getByRole("dialog", { name: "Cono doble" }).getByRole("button", { name: /Agregar · \$\s?8\.000/ }).click(); // tiene toppings: abre opciones
+  await carrito.getByLabel("Es domicilio").check();
+  await expect(carrito.getByRole("button", { name: /Cobrar/ })).toBeDisabled(); // faltan cliente y dirección
+  await carrito.getByLabel("Cliente *").fill("Laura Gómez");
+  await carrito.getByLabel("Dirección *").fill("Calle 10 # 5-20");
+  await carrito.getByLabel("Teléfono").fill("3001234567");
+  await carrito.getByLabel("Valor domicilio").fill("3000");
+  await carrito.getByRole("radio", { name: "Transferencia" }).click();
+  await carrito.getByRole("button", { name: /Cobrar \$\s?11\.000/ }).click();
+  ticket = page.getByRole("dialog", { name: "Venta registrada" });
+  await expect(ticket.locator("#ticket")).toContainText("Laura Gómez");
+  await expect(ticket.locator("#ticket")).toContainText(/Domicilio\s*\$\s?3\.000/);
+  await ticket.getByRole("button", { name: "Nueva venta" }).click();
+
+  // 3) Seguimiento del domicilio
+  await page.getByRole("link", { name: "Domicilios" }).click();
+  const pedido = page.getByRole("listitem").filter({ hasText: "Laura Gómez" });
+  await expect(page.getByRole("region", { name: /Pendiente/ }).getByText("Laura Gómez")).toBeVisible();
+  await pedido.getByRole("button", { name: "Enviar" }).click();
+  await expect(page.getByRole("region", { name: /En camino/ }).getByText("Laura Gómez")).toBeVisible();
+  await page.getByRole("listitem").filter({ hasText: "Laura Gómez" }).getByRole("button", { name: "Marcar entregado" }).click();
+  await expect(page.getByRole("region", { name: /Entregado/ }).getByText("Laura Gómez")).toBeVisible();
+
+  // 4) Caja: efectivo = base 20.000 + 2.500 ; transferencias = 5.000 + 11.000 ; total vendido 18.500
+  await page.getByRole("link", { name: "Caja" }).click();
+  await expect(fila(page, "Ventas en efectivo")).toHaveText(/2\.500/);
+  await expect(fila(page, "Ventas por transferencia")).toHaveText(/16\.000/);
+  await expect(fila(page, "Total vendido")).toHaveText(/18\.500/);
+  await expect(fila(page, "Debes tener en efectivo")).toHaveText(/22\.500/);
+  await expect(fila(page, "Debes tener en transferencias")).toHaveText(/16\.000/);
+  await expect(fila(page, "Total con la base")).toHaveText(/38\.500/);
+
+  // 5) Cierre con faltante de $500 en efectivo: pide nota antes de cerrar
+  await page.getByLabel("Efectivo contado (COP)").fill("22000");
+  await page.getByLabel("Transferencias recibidas (COP)").fill("16000");
+  await expect(page.getByText(/Falta \$\s?500/)).toBeVisible();
+  await expect(page.getByText("La caja no cuadra", { exact: false })).toBeVisible();
+  await page.getByLabel("Nota (obligatoria)").fill("Se dio mal un cambio");
+  await page.getByRole("button", { name: "Cerrar con diferencia" }).click();
   await expect(page.getByRole("heading", { name: "Último cierre" })).toBeVisible();
+  await expect(page.getByText("Faltó $ 500", { exact: false }).or(page.getByText(/Faltó \$\s?500/))).toBeVisible();
+  await expect(page.getByText("Nota: Se dio mal un cambio")).toBeVisible();
 });

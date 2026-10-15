@@ -4,6 +4,10 @@ import { formatDateTime, PAYMENT_LABELS } from "@/lib/money";
 import { movementsInRange, parseRange, salesInRange, shiftsInRange } from "@/lib/report-queries";
 
 const STATUS = { paid: "Pagada", voided: "Anulada" } as const;
+/** Monto pagado con un método (ventas antiguas sin `payments`: todo en su método). */
+const part = (s: { payments?: { method: string; amount: number }[] | null; paymentMethod: string; total: number }, m: string) =>
+  s.payments ? s.payments.filter((p) => p.method === m).reduce((a, p) => a + p.amount, 0) : s.paymentMethod === m ? s.total : 0;
+
 const MOVE = { in: "Entrada", out: "Merma", adjust: "Conteo", sale: "Venta", void: "Anulación" } as const;
 
 export async function GET(req: Request) {
@@ -21,7 +25,7 @@ export async function GET(req: Request) {
     case "ventas": {
       const sales = await salesInRange(range);
       csv = toCSV(
-        ["Número", "Fecha", "Cajero", "Productos", "Método", "Método original", "Total", "Recibido", "Cambio", "Estado", "Motivo anulación"],
+        ["Número", "Fecha", "Cajero", "Productos", "Método", "Método original", "Total", "En efectivo", "Por transferencia", "Recibido", "Cambio", "Domicilio", "Cliente", "Dirección", "Teléfono", "Estado", "Motivo anulación"],
         sales.map((s) => [
           s.number,
           formatDateTime(s.createdAt),
@@ -30,8 +34,14 @@ export async function GET(req: Request) {
           PAYMENT_LABELS[s.paymentMethod],
           s.paymentChanges?.[0] ? PAYMENT_LABELS[s.paymentChanges?.[0].from as keyof typeof PAYMENT_LABELS] : "",
           s.total,
+          part(s, "cash"),
+          part(s, "transfer"),
           s.cashReceived,
           s.change,
+          s.delivery?.fee,
+          s.delivery?.customer,
+          s.delivery?.address,
+          s.delivery?.phone,
           STATUS[s.status],
           s.voidReason,
         ]),
@@ -61,7 +71,7 @@ export async function GET(req: Request) {
     case "cierres": {
       const shifts = await shiftsInRange(range);
       csv = toCSV(
-        ["Cajero", "Apertura", "Cierre", "Base", "Efectivo", "Transferencia", "Otros (tarjeta/Nequi/Daviplata)", "Esperado", "Contado", "Diferencia", "Estado"],
+        ["Cajero", "Apertura", "Cierre", "Base", "Ventas efectivo", "Ventas transferencia", "Otros (tarjeta/Nequi/Daviplata)", "Ventas totales", "Domicilios", "Efectivo esperado", "Efectivo contado", "Diferencia efectivo", "Transferencia esperada", "Transferencia verificada", "Diferencia transferencia", "Nota", "Estado"],
         shifts.map((s) => {
           const t = (m: string) => (s.totalsByMethod as Record<string, number> | undefined)?.[m] ?? 0;
           return [
@@ -72,9 +82,15 @@ export async function GET(req: Request) {
             t("cash"),
             t("transfer"),
             t("card") + t("nequi") + t("daviplata"),
+            Object.values((s.totalsByMethod ?? {}) as Record<string, number>).reduce((a, b) => a + b, 0),
+            s.deliveryFees,
             s.expectedCash,
             s.countedCash,
             s.difference,
+            s.expectedTransfer,
+            s.countedTransfer,
+            s.transferDifference,
+            s.closeNote,
             s.status === "open" ? "Abierta" : "Cerrada",
           ];
         }),

@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { ACTIVE_PAYMENT_METHODS } from "@/lib/money";
+import { ACTIVE_PAYMENT_METHODS, SWITCHABLE_PAYMENT_METHODS } from "@/lib/money";
+import { DELIVERY_STATUSES } from "@/models/Sale";
 
 export const objectId = z.string().regex(/^[a-f0-9]{24}$/, "Id inválido");
 const money = z.coerce.number().int().min(0).max(100_000_000);
@@ -19,10 +20,26 @@ export const saleInputSchema = z.object({
     .max(50),
   paymentMethod: z.enum(ACTIVE_PAYMENT_METHODS),
   cashReceived: money.optional(),
+  transferAmount: money.optional(), // solo pago mixto
+  delivery: z
+    .object({
+      customer: z.string().trim().min(2, "Escribe el nombre del cliente").max(80),
+      phone: z.string().trim().max(30).optional(),
+      address: z.string().trim().min(3, "Escribe la dirección").max(200),
+      notes: z.string().trim().max(200).optional(),
+      fee: money,
+    })
+    .optional(),
 });
 export type SaleInput = z.infer<typeof saleInputSchema>;
 
 export const openShiftSchema = z.object({ openingCash: money });
-export const closeShiftSchema = z.object({ countedCash: money });
+export const closeShiftSchema = z.object({
+  countedCash: money,
+  countedTransfer: money,
+  note: z.string().trim().max(300).optional(),
+});
 
-export const changeMethodSchema = z.object({ saleId: objectId, method: z.enum(ACTIVE_PAYMENT_METHODS) });
+export const changeMethodSchema = z.object({ saleId: objectId, method: z.enum(SWITCHABLE_PAYMENT_METHODS) });
+
+export const deliveryStatusSchema = z.object({ saleId: objectId, status: z.enum(DELIVERY_STATUSES) });

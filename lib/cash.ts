@@ -27,8 +27,59 @@ export function change(total: number, cashReceived: number) {
   return cashReceived - total;
 }
 
-/** Cierre: esperado = base + ventas en efectivo; diferencia = contado − esperado. */
-export function closeShiftTotals(openingCash: number, totalsByMethod: Record<string, number>, countedCash: number) {
-  const expectedCash = openingCash + (totalsByMethod.cash ?? 0);
-  return { expectedCash, difference: countedCash - expectedCash };
+export type Payment = { method: "cash" | "transfer"; amount: number };
+
+/**
+ * Reparte el total entre efectivo y transferencia.
+ * - cash: todo en efectivo; cashReceived (vacío = exacto) ≥ total → cambio.
+ * - transfer: todo por transferencia.
+ * - mixed: transferAmount por transferencia (0 < t < total) y el resto en efectivo;
+ *   el cambio se calcula solo sobre la parte en efectivo.
+ */
+export function splitPayment(
+  method: "cash" | "transfer" | "mixed",
+  total: number,
+  opts: { cashReceived?: number; transferAmount?: number } = {},
+): { payments: Payment[]; cashReceived?: number; change?: number } {
+  if (method === "transfer") return { payments: [{ method: "transfer", amount: total }] };
+  let cashPart = total;
+  const payments: Payment[] = [];
+  if (method === "mixed") {
+    const t = opts.transferAmount ?? 0;
+    if (t <= 0 || t >= total) throw new BusinessError("En pago mixto, la transferencia debe ser mayor a 0 y menor al total");
+    cashPart = total - t;
+    payments.push({ method: "cash", amount: cashPart }, { method: "transfer", amount: t });
+  } else {
+    payments.push({ method: "cash", amount: total });
+  }
+  const cashReceived = opts.cashReceived ?? cashPart;
+  return { payments, cashReceived, change: change(cashPart, cashReceived) };
+}
+
+/**
+ * Cierre de caja. Debe haber:
+ * - en efectivo: base + ventas en efectivo (incluye la parte en efectivo de los pagos mixtos);
+ * - en transferencias: ventas por transferencia.
+ * Diferencias = contado − esperado (negativo = falta, positivo = sobra).
+ */
+export function closeShiftTotals(
+  openingCash: number,
+  totalsByMethod: Record<string, number>,
+  counted: { cash: number; transfer: number },
+) {
+  const cashSales = totalsByMethod.cash ?? 0;
+  const transferSales = totalsByMethod.transfer ?? 0;
+  const salesTotal = Object.values(totalsByMethod).reduce((s, v) => s + v, 0);
+  const expectedCash = openingCash + cashSales;
+  const expectedTransfer = transferSales;
+  return {
+    cashSales,
+    transferSales,
+    salesTotal,
+    expectedCash,
+    expectedTransfer,
+    totalWithBase: openingCash + salesTotal,
+    difference: counted.cash - expectedCash,
+    transferDifference: counted.transfer - expectedTransfer,
+  };
 }

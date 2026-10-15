@@ -1,7 +1,8 @@
 import { type InferSchemaType, Schema, model, models, type Model } from "mongoose";
 
 // Todos los valores que pueden existir guardados (tarjeta/Nequi/Daviplata quedan solo por ventas antiguas).
-export const PAYMENT_METHODS = ["cash", "card", "transfer", "nequi", "daviplata"] as const;
+export const PAYMENT_METHODS = ["cash", "card", "transfer", "mixed", "nequi", "daviplata"] as const;
+export const DELIVERY_STATUSES = ["pending", "on_way", "delivered"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 const option = new Schema({ name: String, price: Number }, { _id: false });
@@ -28,6 +29,24 @@ const saleSchema = new Schema({
   items: { type: [itemSchema], required: true },
   total: { type: Number, required: true },
   paymentMethod: { type: String, enum: PAYMENT_METHODS, required: true },
+  // Cuánto entró por cada método (mixto = efectivo + transferencia). Ventas antiguas no lo tienen.
+  payments: { type: [new Schema({ method: { type: String, required: true }, amount: { type: Number, required: true } }, { _id: false })], default: undefined },
+  // Pedido a domicilio: el valor del domicilio va incluido en `total`.
+  delivery: {
+    type: new Schema(
+      {
+        customer: { type: String, required: true },
+        phone: String,
+        address: { type: String, required: true },
+        notes: String,
+        fee: { type: Number, default: 0 },
+        status: { type: String, enum: DELIVERY_STATUSES, default: "pending" },
+        updatedAt: Date,
+      },
+      { _id: false },
+    ),
+    default: undefined,
+  },
   cashReceived: Number,
   change: Number,
   status: { type: String, enum: ["paid", "voided"], default: "paid" },
@@ -44,6 +63,7 @@ const saleSchema = new Schema({
 saleSchema.index({ createdAt: -1 });
 saleSchema.index({ shiftId: 1 });
 saleSchema.index({ cashierId: 1, createdAt: -1 });
+saleSchema.index({ "delivery.status": 1, createdAt: -1 }, { sparse: true });
 
 export type SaleDoc = InferSchemaType<typeof saleSchema>;
 export const Sale: Model<SaleDoc> = models.Sale ?? model("Sale", saleSchema);

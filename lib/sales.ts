@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { BusinessError, change, closeShiftTotals, unitPrice } from "@/lib/cash";
+import { BusinessError, closeShiftTotals, splitPayment, unitPrice } from "@/lib/cash";
 import type { SaleInput } from "@/lib/validations/sale";
 import { CashShift } from "@/models/CashShift";
 import { Counter } from "@/models/Counter";
@@ -41,10 +41,9 @@ export async function createSaleTx(actor: Actor, input: SaleInput) {
           subtotal: priced.unitPrice * i.qty,
         };
       });
-      const total = items.reduce((s, i) => s + i.subtotal, 0);
-      const cash = input.paymentMethod === "cash";
-      const cashReceived = cash ? (input.cashReceived ?? total) : undefined;
-      const changeDue = cash ? change(total, cashReceived!) : undefined;
+      // El valor del domicilio se cobra junto con los productos.
+      const total = items.reduce((s, i) => s + i.subtotal, 0) + (input.delivery?.fee ?? 0);
+      const pay = splitPayment(input.paymentMethod, total, { cashReceived: input.cashReceived, transferAmount: input.transferAmount });
 
       // Agrupa unidades por producto con control de stock y descuenta de forma condicional.
       const qtyByProduct = new Map<string, number>();
@@ -75,8 +74,10 @@ export async function createSaleTx(actor: Actor, input: SaleInput) {
             items,
             total,
             paymentMethod: input.paymentMethod,
-            cashReceived,
-            change: changeDue,
+            payments: pay.payments,
+            cashReceived: pay.cashReceived,
+            change: pay.change,
+            delivery: input.delivery && { ...input.delivery, status: "pending", updatedAt: new Date() },
           },
         ],
         { session },
@@ -110,24 +111,73 @@ export async function openShift(actor: Actor, openingCash: number) {
   }
 }
 
-/** Totales del turno calculados en la BD (solo ventas pagadas). */
+/** Pagos de cada venta; las ventas antiguas sin `payments` cuentan todo en su método. */
+export const PAYMENTS_EXPR = { $ifNull: ["$payments", [{ method: "$paymentMethod", amount: "$total" }]] };
+
+/**
+ * Totales del turno calculados en la BD (solo ventas pagadas). Un pago mixto suma su parte
+ * en efectivo a "cash" y su parte transferida a "transfer".
+ */
 export async function shiftTotals(shiftId: mongoose.Types.ObjectId | string) {
-  const rows = await Sale.aggregate<{ _id: string; total: number; count: number }>([
+  const [r] = await Sale.aggregate<{
+    byMethod: { _id: string; total: number }[];
+    sales: { count: number; deliveryFees: number; deliveryCount: number }[];
+  }>([
     { $match: { shiftId: new mongoose.Types.ObjectId(String(shiftId)), status: "paid" } },
-    { $group: { _id: "$paymentMethod", total: { $sum: "$total" }, count: { $sum: 1 } } },
+    {
+      $facet: {
+        byMethod: [
+          { $project: { p: PAYMENTS_EXPR } },
+          { $unwind: "$p" },
+          { $group: { _id: "$p.method", total: { $sum: "$p.amount" } } },
+        ],
+        sales: [
+          {
+            $group: {
+              _id: null,
+              count: { $sum: 1 },
+              deliveryFees: { $sum: { $ifNull: ["$delivery.fee", 0] } },
+              deliveryCount: { $sum: { $cond: [{ $ifNull: ["$delivery", false] }, 1, 0] } },
+            },
+          },
+        ],
+      },
+    },
   ]);
-  const totalsByMethod = Object.fromEntries(rows.map((r) => [r._id, r.total])) as Record<string, number>;
-  return { totalsByMethod, salesCount: rows.reduce((s, r) => s + r.count, 0) };
+  const totalsByMethod = Object.fromEntries((r?.byMethod ?? []).map((x) => [x._id, x.total])) as Record<string, number>;
+  const s = r?.sales[0];
+  return { totalsByMethod, salesCount: s?.count ?? 0, deliveryFees: s?.deliveryFees ?? 0, deliveryCount: s?.deliveryCount ?? 0 };
 }
 
-export async function closeShift(actor: Actor, countedCash: number) {
+/**
+ * Cierra el turno comparando lo contado (efectivo y transferencias) contra lo esperado.
+ * Si sobra o falta dinero, exige una nota que lo explique.
+ */
+export async function closeShift(actor: Actor, counted: { cash: number; transfer: number }, note?: string) {
   const shift = await CashShift.findOne({ cashierId: actor.id, status: "open" });
   if (!shift) throw new BusinessError("No tienes una caja abierta");
-  const { totalsByMethod, salesCount } = await shiftTotals(shift._id);
-  const { expectedCash, difference } = closeShiftTotals(shift.openingCash, totalsByMethod, countedCash);
+  const { totalsByMethod, salesCount, deliveryFees, deliveryCount } = await shiftTotals(shift._id);
+  const t = closeShiftTotals(shift.openingCash, totalsByMethod, counted);
+  if ((t.difference !== 0 || t.transferDifference !== 0) && !note?.trim()) {
+    throw new BusinessError("La caja no cuadra: revisa el conteo o escribe una nota explicando la diferencia");
+  }
   const r = await CashShift.updateOne(
     { _id: shift._id, status: "open" },
-    { status: "closed", closedAt: new Date(), countedCash, expectedCash, difference, totalsByMethod, salesCount },
+    {
+      status: "closed",
+      closedAt: new Date(),
+      countedCash: counted.cash,
+      expectedCash: t.expectedCash,
+      difference: t.difference,
+      countedTransfer: counted.transfer,
+      expectedTransfer: t.expectedTransfer,
+      transferDifference: t.transferDifference,
+      closeNote: note?.trim() || undefined,
+      totalsByMethod,
+      salesCount,
+      deliveryFees,
+      deliveryCount,
+    },
   );
   if (r.modifiedCount !== 1) throw new BusinessError("La caja ya fue cerrada");
   return String(shift._id);
@@ -180,7 +230,7 @@ export async function voidSaleTx(actor: Actor & { role: "admin" | "cashier" }, s
  * Productos, total y stock no se tocan. Solo mientras la caja de esa venta siga abierta,
  * para que el cierre cuadre con lo que realmente entró. Queda registro en paymentChanges.
  */
-export async function changePaymentMethod(actor: Actor & { role: "admin" | "cashier" }, saleId: string, method: PaymentMethod) {
+export async function changePaymentMethod(actor: Actor & { role: "admin" | "cashier" }, saleId: string, method: Extract<PaymentMethod, "cash" | "transfer">) {
   const sale = await Sale.findById(saleId);
   if (!sale || sale.status !== "paid") throw new BusinessError("La venta no existe o está anulada");
   if (actor.role !== "admin" && String(sale.cashierId) !== actor.id) throw new BusinessError("Solo puedes cambiar tus propias ventas");
@@ -189,12 +239,22 @@ export async function changePaymentMethod(actor: Actor & { role: "admin" | "cash
     throw new BusinessError("La caja de esta venta ya se cerró; no se puede cambiar el método");
   }
   // A efectivo: se asume pago exacto. A otro método: sin efectivo recibido ni cambio.
+  const payments = [{ method, amount: sale.total }];
   const cash = method === "cash"
-    ? { $set: { paymentMethod: method, cashReceived: sale.total, change: 0 } }
-    : { $set: { paymentMethod: method }, $unset: { cashReceived: 1, change: 1 } };
+    ? { $set: { paymentMethod: method, payments, cashReceived: sale.total, change: 0 } }
+    : { $set: { paymentMethod: method, payments }, $unset: { cashReceived: 1, change: 1 } };
   const r = await Sale.updateOne(
     { _id: sale._id, status: "paid", paymentMethod: sale.paymentMethod },
     { ...cash, $push: { paymentChanges: { from: sale.paymentMethod, to: method, by: actor.id } } },
   );
   if (r.modifiedCount !== 1) throw new BusinessError("La venta cambió mientras tanto, intenta de nuevo");
+}
+
+/** Avanza el estado de un domicilio (Pendiente → En camino → Entregado). */
+export async function setDeliveryStatus(saleId: string, status: "pending" | "on_way" | "delivered") {
+  const r = await Sale.updateOne(
+    { _id: saleId, status: "paid", delivery: { $exists: true } },
+    { $set: { "delivery.status": status, "delivery.updatedAt": new Date() } },
+  );
+  if (r.matchedCount !== 1) throw new BusinessError("El domicilio no existe o la venta fue anulada");
 }

@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { AnimatePresence, motion, useAnimate } from "motion/react";
-import { Minus, Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
+import { Bike, Minus, Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
 import { Modal } from "@/components/modal";
 import { MoneyInput } from "@/components/money-input";
 import { ProductImage } from "@/components/product-image";
 import { StockBadge } from "@/components/stock-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { type Option, unitPrice } from "@/lib/cash";
 import { ACTIVE_PAYMENT_METHODS, formatCOP, PAYMENT_LABELS } from "@/lib/money";
 import { type ClientProduct, stockStatus } from "@/lib/serialize";
@@ -161,6 +162,10 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
   const [configuring, setConfiguring] = useState<ClientProduct | null>(null);
   const [method, setMethod] = useState<PaymentMethod>("cash");
   const [cashReceived, setCashReceived] = useState("");
+  const [transferAmount, setTransferAmount] = useState("");
+  const [isDelivery, setIsDelivery] = useState(false);
+  const [delivery, setDelivery] = useState({ customer: "", phone: "", address: "", notes: "", fee: "" });
+  const setDel = (k: keyof typeof delivery) => (v: string) => setDelivery((d) => ({ ...d, [k]: v }));
   const [error, setError] = useState("");
   const [ticket, setTicket] = useState<TicketSale | null>(null);
   const [pending, startTransition] = useTransition();
@@ -182,10 +187,18 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
     return products.filter((p) => (cat === "all" || p.categoryId === cat) && (!q || p.name.toLocaleLowerCase("es").includes(q)));
   }, [products, cat, query]);
 
-  const total = cart.reduce((s, l) => s + l.unitPrice * l.qty, 0);
+  const itemsTotal = cart.reduce((s, l) => s + l.unitPrice * l.qty, 0);
+  const fee = isDelivery ? Number(delivery.fee || 0) : 0;
+  const total = itemsTotal + fee;
   const units = cart.reduce((s, l) => s + l.qty, 0);
+  const transfer = Number(transferAmount || 0);
+  // Parte que se paga en efectivo: todo (efectivo), el resto de la transferencia (mixto) o nada.
+  const cashPart = method === "cash" ? total : method === "mixed" ? Math.max(total - transfer, 0) : 0;
   const received = Number(cashReceived || 0);
-  const cashShort = method === "cash" && cashReceived !== "" && received < total;
+  const takesCash = method === "cash" || method === "mixed";
+  const cashShort = takesCash && cashReceived !== "" && received < cashPart;
+  const mixedInvalid = method === "mixed" && (transfer <= 0 || transfer >= total);
+  const deliveryInvalid = isDelivery && (delivery.customer.trim().length < 2 || delivery.address.trim().length < 3);
 
   function add(product: ClientProduct, variant: string | undefined, addonNames: string[], qty: number) {
     const priced = unitPrice(product, variant, addonNames);
@@ -212,13 +225,26 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
       const res = await submitSale({
         items: cart.map((l) => ({ productId: l.product.id, variant: l.variant, addons: l.addons.map((a) => a.name), qty: l.qty })),
         paymentMethod: method,
-        cashReceived: method === "cash" && cashReceived !== "" ? received : undefined,
+        cashReceived: takesCash && cashReceived !== "" ? received : undefined,
+        transferAmount: method === "mixed" ? transfer : undefined,
+        delivery: isDelivery
+          ? {
+              customer: delivery.customer,
+              phone: delivery.phone || undefined,
+              address: delivery.address,
+              notes: delivery.notes || undefined,
+              fee,
+            }
+          : undefined,
       });
       if (res.error) return setError(res.error);
       setTicket(res.sale!);
       setCart([]);
       setCashReceived("");
+      setTransferAmount("");
       setMethod("cash");
+      setIsDelivery(false);
+      setDelivery({ customer: "", phone: "", address: "", notes: "", fee: "" });
     });
   }
 
@@ -342,12 +368,57 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
             </ul>
           )}
 
-          <div className="flex items-baseline justify-between border-t-2 border-dashed border-border pt-3">
+          <div className="flex flex-col gap-3 border-t-2 border-dashed border-border pt-3">
+            <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl bg-lila-100/70 px-3 py-2.5 has-focus-visible:ring-4 has-focus-visible:ring-ring">
+              <span className="flex items-center gap-2 font-heading">
+                <Bike aria-hidden className="size-5 text-primary" /> Es domicilio
+              </span>
+              <input type="checkbox" checked={isDelivery} onChange={(e) => setIsDelivery(e.target.checked)} className="size-5 accent-primary" />
+            </label>
+            {isDelivery && (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="col-span-2 flex flex-col gap-1">
+                  <Label htmlFor="del-customer">Cliente *</Label>
+                  <Input id="del-customer" value={delivery.customer} onChange={(e) => setDel("customer")(e.target.value)} autoComplete="off" className="h-11" />
+                </div>
+                <div className="col-span-2 flex flex-col gap-1">
+                  <Label htmlFor="del-address">Dirección *</Label>
+                  <Input id="del-address" value={delivery.address} onChange={(e) => setDel("address")(e.target.value)} autoComplete="off" className="h-11" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="del-phone">Teléfono</Label>
+                  <Input id="del-phone" type="tel" inputMode="tel" value={delivery.phone} onChange={(e) => setDel("phone")(e.target.value)} className="h-11" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="del-fee">Valor domicilio</Label>
+                  <MoneyInput id="del-fee" value={delivery.fee} onValueChange={setDel("fee")} className="h-11" />
+                </div>
+                <div className="col-span-2 flex flex-col gap-1">
+                  <Label htmlFor="del-notes">Notas</Label>
+                  <Input id="del-notes" value={delivery.notes} onChange={(e) => setDel("notes")(e.target.value)} placeholder="Ej: torre 2, apto 301" className="h-11" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {fee > 0 && (
+            <dl className="flex flex-col gap-0.5 text-sm text-muted-foreground">
+              <div className="flex justify-between">
+                <dt>Productos</dt>
+                <dd className="tabular-nums">{formatCOP(itemsTotal)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt>Domicilio</dt>
+                <dd className="tabular-nums">{formatCOP(fee)}</dd>
+              </div>
+            </dl>
+          )}
+          <div className="flex items-baseline justify-between">
             <span className="font-heading text-lg">Total</span>
             <span className="font-heading text-3xl font-semibold text-primary tabular-nums">{formatCOP(total)}</span>
           </div>
 
-          <div role="radiogroup" aria-label="Método de pago" className="grid grid-cols-2 gap-2">
+          <div role="radiogroup" aria-label="Método de pago" className="grid grid-cols-3 gap-2">
             {METHODS.map((m) => {
               const Icon = METHOD_ICON[m];
               const on = method === m;
@@ -370,31 +441,49 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
             })}
           </div>
 
-          {method === "cash" && (
+          {takesCash && (
             <div className="flex flex-col gap-2 rounded-2xl bg-lila-100/70 p-3">
+              {method === "mixed" && (
+                <>
+                  <label htmlFor="transferAmount" className="font-heading text-sm font-medium">
+                    Valor por transferencia
+                  </label>
+                  <MoneyInput id="transferAmount" value={transferAmount} onValueChange={setTransferAmount} className="h-12 bg-card text-lg" aria-invalid={mixedInvalid} />
+                  <p className="font-heading tabular-nums">
+                    {mixedInvalid ? (
+                      <span className="text-destructive">Debe ser mayor a $ 0 y menor a {formatCOP(total)}</span>
+                    ) : (
+                      <>
+                        En efectivo: <strong>{formatCOP(cashPart)}</strong>
+                      </>
+                    )}
+                  </p>
+                </>
+              )}
               <label htmlFor="cashReceived" className="font-heading text-sm font-medium">
                 Efectivo recibido (vacío = exacto)
               </label>
               <MoneyInput id="cashReceived" value={cashReceived} onValueChange={setCashReceived} className="h-12 bg-card text-lg" aria-invalid={cashShort} />
               <div className="flex flex-wrap gap-2">
-                {QUICK_CASH.filter((v) => v >= total).slice(0, 3).map((v) => (
+                {QUICK_CASH.filter((v) => v >= cashPart).slice(0, 3).map((v) => (
                   <Button key={v} type="button" variant="outline" className="h-10 rounded-full bg-card" onClick={() => setCashReceived(String(v))}>
                     {formatCOP(v)}
                   </Button>
                 ))}
               </div>
               <p aria-live="polite" className={cn("font-heading text-lg tabular-nums", cashShort && "text-destructive")}>
-                {cashShort ? `Faltan ${formatCOP(total - received)}` : `Cambio: ${formatCOP(cashReceived === "" ? 0 : received - total)}`}
+                {cashShort ? `Faltan ${formatCOP(cashPart - received)}` : `Cambio: ${formatCOP(cashReceived === "" ? 0 : received - cashPart)}`}
               </p>
             </div>
           )}
 
+          {deliveryInvalid && cart.length > 0 && <p className="text-sm text-destructive">Completa el cliente y la dirección del domicilio.</p>}
           {error && (
             <p role="alert" className="text-sm text-destructive">
               {error}
             </p>
           )}
-          <Button type="button" disabled={!cart.length || cashShort || pending} onClick={checkout} className="press-3d h-14 rounded-2xl text-lg">
+          <Button type="button" disabled={!cart.length || cashShort || mixedInvalid || deliveryInvalid || pending} onClick={checkout} className="press-3d h-14 rounded-2xl text-lg">
             {pending ? "Cobrando…" : `Cobrar ${formatCOP(total)}`}
           </Button>
         </div>

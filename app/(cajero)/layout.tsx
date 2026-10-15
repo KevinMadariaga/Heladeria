@@ -5,6 +5,7 @@ import { AppHeader } from "@/components/app-header";
 const links = [
   { href: "/pos", label: "Vender" },
   { href: "/pos/caja", label: "Caja" },
+  { href: "/pos/domicilios", label: "Domicilios" },
   { href: "/pos/inventario", label: "Inventario" },
 ];
 

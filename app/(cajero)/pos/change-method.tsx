@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Banknote, CreditCard, Landmark, Smartphone, Wallet, type LucideIcon } from "lucide-react";
-import { ACTIVE_PAYMENT_METHODS, formatCOP, PAYMENT_LABELS } from "@/lib/money";
+import { Banknote, CreditCard, Landmark, Shuffle, Smartphone, Wallet, type LucideIcon } from "lucide-react";
+import { formatCOP, PAYMENT_LABELS, SWITCHABLE_PAYMENT_METHODS } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import type { PaymentMethod } from "@/models/Sale";
 import { changePaymentAction } from "./actions";
@@ -11,12 +11,18 @@ export const METHOD_ICON: Record<PaymentMethod, LucideIcon> = {
   cash: Banknote,
   card: CreditCard,
   transfer: Landmark,
+  mixed: Shuffle,
   nequi: Smartphone,
   daviplata: Wallet,
 };
-const METHODS = ACTIVE_PAYMENT_METHODS;
+const METHODS = SWITCHABLE_PAYMENT_METHODS;
 
-export type MethodChange = { paymentMethod: PaymentMethod; cashReceived?: number; change?: number };
+export type MethodChange = {
+  paymentMethod: PaymentMethod;
+  cashReceived?: number;
+  change?: number;
+  payments?: { method: string; amount: number }[];
+};
 
 /** Cambia el método de pago de una venta ya cobrada. Total, productos y stock no cambian. */
 export function ChangeMethod({
@@ -35,7 +41,7 @@ export function ChangeMethod({
   const [done, setDone] = useState("");
   const [pending, startTransition] = useTransition();
 
-  function pick(m: PaymentMethod) {
+  function pick(m: (typeof METHODS)[number]) {
     if (m === method || pending) return;
     setError("");
     setDone("");
@@ -44,7 +50,7 @@ export function ChangeMethod({
       if ("error" in res && res.error) return setError(res.error);
       setMethod(m);
       setDone(`Listo: ahora figura como ${PAYMENT_LABELS[m]}.`);
-      onChanged?.({ paymentMethod: m, cashReceived: res.cashReceived, change: res.change });
+      onChanged?.({ paymentMethod: m, cashReceived: res.cashReceived, change: res.change, payments: res.payments });
     });
   }
 

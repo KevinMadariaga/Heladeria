@@ -4,9 +4,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth-guard";
 import { BusinessError } from "@/lib/cash";
-import { changePaymentMethod, closeShift, createSaleTx, openShift, voidSaleTx } from "@/lib/sales";
+import { changePaymentMethod, closeShift, createSaleTx, openShift, setDeliveryStatus, voidSaleTx } from "@/lib/sales";
 import { voidSchema } from "@/lib/validations/inventory";
-import { changeMethodSchema, closeShiftSchema, openShiftSchema, saleInputSchema } from "@/lib/validations/sale";
+import { changeMethodSchema, closeShiftSchema, deliveryStatusSchema, openShiftSchema, saleInputSchema } from "@/lib/validations/sale";
 import { Sale } from "@/models/Sale";
 
 export type FormState = { ok?: boolean; error?: string } | undefined;
@@ -36,6 +36,10 @@ export async function submitSale(raw: unknown) {
         paymentMethod: s.paymentMethod,
         cashReceived: s.cashReceived ?? undefined,
         change: s.change ?? undefined,
+        payments: (s.payments ?? []).map((p) => ({ method: p.method, amount: p.amount })),
+        delivery: s.delivery
+          ? { customer: s.delivery.customer, phone: s.delivery.phone ?? undefined, address: s.delivery.address, notes: s.delivery.notes ?? undefined, fee: s.delivery.fee ?? 0 }
+          : undefined,
       },
     };
   } catch (err) {
@@ -62,9 +66,9 @@ export async function openShiftAction(_prev: FormState, formData: FormData): Pro
 export async function closeShiftAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const user = await requireRole("admin", "cashier");
   const parsed = closeShiftSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return { error: "Escribe el efectivo contado" };
+  if (!parsed.success) return { error: "Escribe el efectivo contado y las transferencias recibidas" };
   try {
-    await closeShift(user, parsed.data.countedCash);
+    await closeShift(user, { cash: parsed.data.countedCash, transfer: parsed.data.countedTransfer }, parsed.data.note);
   } catch (err) {
     if (err instanceof BusinessError) return { error: err.message };
     throw err;
@@ -87,7 +91,13 @@ export async function changePaymentAction(raw: unknown) {
   const s = (await Sale.findById(parsed.data.saleId).lean())!;
   revalidatePath("/pos", "layout");
   revalidatePath("/admin", "layout");
-  return { ok: true, paymentMethod: s.paymentMethod, cashReceived: s.cashReceived ?? undefined, change: s.change ?? undefined };
+  return {
+    ok: true,
+    paymentMethod: s.paymentMethod,
+    cashReceived: s.cashReceived ?? undefined,
+    change: s.change ?? undefined,
+    payments: (s.payments ?? []).map((p) => ({ method: p.method, amount: p.amount })),
+  };
 }
 
 /** Devolución desde Caja: el cajero solo sus ventas del turno abierto (lo valida voidSaleTx). */
@@ -103,5 +113,20 @@ export async function returnSaleAction(_prev: FormState, formData: FormData): Pr
   }
   revalidatePath("/pos", "layout");
   revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
+/** Cambia el estado de un domicilio (lo pueden hacer cajeros y admin). */
+export async function deliveryStatusAction(raw: unknown) {
+  await requireRole("admin", "cashier");
+  const parsed = deliveryStatusSchema.safeParse(raw);
+  if (!parsed.success) return { error: "Estado inválido" };
+  try {
+    await setDeliveryStatus(parsed.data.saleId, parsed.data.status);
+  } catch (err) {
+    if (err instanceof BusinessError) return { error: err.message };
+    throw err;
+  }
+  revalidatePath("/pos/domicilios");
   return { ok: true };
 }

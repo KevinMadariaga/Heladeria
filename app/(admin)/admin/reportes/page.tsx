@@ -147,22 +147,31 @@ export default async function ReportesPage({ searchParams }: PageProps<"/admin/r
                   <th className="py-2 pr-3 text-right font-medium">Base</th>
                   <th className="py-2 pr-3 text-right font-medium">Esperado</th>
                   <th className="py-2 pr-3 text-right font-medium">Contado</th>
-                  <th className="py-2 text-right font-medium">Diferencia</th>
+                  <th className="py-2 pr-3 text-right font-medium">Dif. efectivo</th>
+                  <th className="py-2 pr-3 text-right font-medium">Transf. verificada</th>
+                  <th className="py-2 text-right font-medium">Dif. transf.</th>
                 </tr>
               </thead>
               <tbody>
                 {shifts.map((s) => (
                   <tr key={String(s._id)} className="border-t border-border">
-                    <td className="py-2 pr-3">{s.cashierName}</td>
+                    <td className="py-2 pr-3">
+                      {s.cashierName}
+                      {s.closeNote && <span className="block text-xs text-muted-foreground">Nota: {s.closeNote}</span>}
+                    </td>
                     <td className="py-2 pr-3 whitespace-nowrap">{formatDateTime(s.openedAt)}</td>
                     <td className="py-2 pr-3 whitespace-nowrap">{s.closedAt ? formatDateTime(s.closedAt) : <Badge>Abierta</Badge>}</td>
                     <td className="py-2 pr-3 text-right tabular-nums">{formatCOP(s.openingCash)}</td>
                     <td className="py-2 pr-3 text-right tabular-nums">{s.expectedCash != null ? formatCOP(s.expectedCash) : "—"}</td>
                     <td className="py-2 pr-3 text-right tabular-nums">{s.countedCash != null ? formatCOP(s.countedCash) : "—"}</td>
                     <td
-                      className={`py-2 text-right font-heading tabular-nums ${(s.difference ?? 0) < 0 ? "text-destructive" : ""}`}
+                      className={`py-2 pr-3 text-right font-heading tabular-nums ${(s.difference ?? 0) < 0 ? "text-destructive" : ""}`}
                     >
                       {s.difference != null ? formatCOP(s.difference) : "—"}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular-nums">{s.countedTransfer != null ? formatCOP(s.countedTransfer) : "—"}</td>
+                    <td className={`py-2 text-right font-heading tabular-nums ${(s.transferDifference ?? 0) < 0 ? "text-destructive" : ""}`}>
+                      {s.transferDifference != null ? formatCOP(s.transferDifference) : "—"}
                     </td>
                   </tr>
                 ))}
