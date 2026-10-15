@@ -156,9 +156,10 @@ test("pago mixto + domicilio + cierre que no cuadra exige nota", async ({ page }
   // 2) Domicilio: Cono doble $8.000 + porta $1.000 + domicilio $3.000 = $12.000 por transferencia
   await productos.getByRole("button", { name: /Cono doble/ }).click();
   await page.getByRole("dialog", { name: "Cono doble" }).getByRole("button", { name: /Agregar · \$\s?8\.000/ }).click(); // tiene toppings: abre opciones
+  const cliente = `Laura Gómez ${Date.now()}`; // único: la base de pruebas guarda domicilios de corridas anteriores
   await carrito.getByLabel("Es domicilio").check();
   await expect(carrito.getByRole("button", { name: /Cobrar/ })).toBeDisabled(); // faltan cliente y dirección
-  await carrito.getByLabel("Cliente *").fill("Laura Gómez");
+  await carrito.getByLabel("Cliente *").fill(cliente);
   await carrito.getByLabel("Dirección *").fill("Calle 10 # 5-20");
   await carrito.getByLabel("Teléfono").fill("3001234567");
   await carrito.getByLabel("Valor domicilio").fill("3000");
@@ -166,7 +167,7 @@ test("pago mixto + domicilio + cierre que no cuadra exige nota", async ({ page }
   await carrito.getByRole("radio", { name: "Transferencia" }).click();
   await carrito.getByRole("button", { name: /Cobrar \$\s?12\.000/ }).click();
   ticket = page.getByRole("dialog", { name: "Venta registrada" });
-  await expect(ticket.locator("#ticket")).toContainText("Laura Gómez");
+  await expect(ticket.locator("#ticket")).toContainText(cliente);
   await expect(ticket.locator("#ticket")).toContainText(/Domicilio\s*\$\s?3\.000/);
   await expect(ticket.locator("#ticket")).toContainText(/Porta \/ envase\s*\$\s?1\.000/);
   await expect(ticket.locator("#ticket")).toContainText(/Productos\s*\$\s?8\.000/);
@@ -174,12 +175,12 @@ test("pago mixto + domicilio + cierre que no cuadra exige nota", async ({ page }
 
   // 3) Seguimiento del domicilio
   await page.getByRole("link", { name: "Domicilios" }).click();
-  const pedido = page.getByRole("listitem").filter({ hasText: "Laura Gómez" });
-  await expect(page.getByRole("region", { name: /Pendiente/ }).getByText("Laura Gómez")).toBeVisible();
+  const pedido = page.getByRole("listitem").filter({ hasText: cliente });
+  await expect(page.getByRole("region", { name: /Pendiente/ }).getByText(cliente)).toBeVisible();
   await pedido.getByRole("button", { name: "Enviar" }).click();
-  await expect(page.getByRole("region", { name: /En camino/ }).getByText("Laura Gómez")).toBeVisible();
-  await page.getByRole("listitem").filter({ hasText: "Laura Gómez" }).getByRole("button", { name: "Marcar entregado" }).click();
-  await expect(page.getByRole("region", { name: /Entregado/ }).getByText("Laura Gómez")).toBeVisible();
+  await expect(page.getByRole("region", { name: /En camino/ }).getByText(cliente)).toBeVisible();
+  await page.getByRole("listitem").filter({ hasText: cliente }).getByRole("button", { name: "Marcar entregado" }).click();
+  await expect(page.getByRole("region", { name: /Entregado/ }).getByText(cliente)).toBeVisible();
 
   // 4) Caja: efectivo = base 20.000 + 2.500 ; transferencias = 5.000 + 12.000 ; total vendido 19.500
   await page.getByRole("link", { name: "Caja" }).click();

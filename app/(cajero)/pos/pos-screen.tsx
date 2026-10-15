@@ -190,7 +190,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
 
   const itemsTotal = cart.reduce((s, l) => s + l.unitPrice * l.qty, 0);
   const fee = isDelivery ? Number(delivery.fee || 0) : 0;
-  const containerFee = Number(containerFeeInput || 0);
+  const containerFee = isDelivery ? Number(containerFeeInput || 0) : 0;
   const total = itemsTotal + fee + containerFee;
   const units = cart.reduce((s, l) => s + l.qty, 0);
   const transfer = Number(transferAmount || 0);
@@ -373,12 +373,6 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
           )}
 
           <div className="flex flex-col gap-3 border-t-2 border-dashed border-border pt-3">
-            <div className="flex items-center justify-between gap-3 rounded-2xl bg-lila-100/70 px-3 py-1.5">
-              <Label htmlFor="container-fee" className="flex items-center gap-2 font-heading text-base">
-                <CupSoda aria-hidden className="size-5 text-primary" /> Porta / envase
-              </Label>
-              <MoneyInput id="container-fee" value={containerFeeInput} onValueChange={setContainerFeeInput} className="h-10 w-32 bg-card" />
-            </div>
             <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl bg-lila-100/70 px-3 py-2.5 has-focus-visible:ring-4 has-focus-visible:ring-ring">
               <span className="flex items-center gap-2 font-heading">
                 <Bike aria-hidden className="size-5 text-primary" /> Es domicilio
@@ -402,6 +396,12 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                 <div className="flex flex-col gap-1">
                   <Label htmlFor="del-fee">Valor domicilio</Label>
                   <MoneyInput id="del-fee" value={delivery.fee} onValueChange={setDel("fee")} className="h-11" />
+                </div>
+                <div className="col-span-2 flex flex-col gap-1">
+                  <Label htmlFor="container-fee" className="flex items-center gap-1.5">
+                    <CupSoda aria-hidden className="size-4 text-primary" /> Porta / envase
+                  </Label>
+                  <MoneyInput id="container-fee" value={containerFeeInput} onValueChange={setContainerFeeInput} className="h-11" />
                 </div>
                 <div className="col-span-2 flex flex-col gap-1">
                   <Label htmlFor="del-notes">Notas</Label>
