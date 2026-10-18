@@ -6,18 +6,20 @@ export const objectId = z.string().regex(/^[a-f0-9]{24}$/, "Id inválido");
 const money = z.coerce.number().int().min(0).max(100_000_000);
 
 // El cliente solo manda qué y cuánto; los precios se recalculan en el servidor.
+const cartItems = z
+  .array(
+    z.object({
+      productId: objectId,
+      variant: z.string().max(60).optional(),
+      addons: z.array(z.string().max(60)).max(20).default([]),
+      qty: z.number().int().min(1).max(99),
+    }),
+  )
+  .min(1, "El carrito está vacío")
+.max(50);
+
 export const saleInputSchema = z.object({
-  items: z
-    .array(
-      z.object({
-        productId: objectId,
-        variant: z.string().max(60).optional(),
-        addons: z.array(z.string().max(60)).max(20).default([]),
-        qty: z.number().int().min(1).max(99),
-      }),
-    )
-    .min(1, "El carrito está vacío")
-    .max(50),
+  items: cartItems,
   paymentMethod: z.enum(ACTIVE_PAYMENT_METHODS),
   cashReceived: money.optional(),
   transferAmount: money.optional(), // solo pago mixto
@@ -33,6 +35,10 @@ export const saleInputSchema = z.object({
     .optional(),
 });
 export type SaleInput = z.infer<typeof saleInputSchema>;
+
+/** Producto que el cajero saca para él (se anota como deuda). */
+export const consumptionInputSchema = z.object({ items: cartItems, note: z.string().trim().max(200).optional() });
+export type ConsumptionInput = z.infer<typeof consumptionInputSchema>;
 
 export const openShiftSchema = z.object({ openingCash: money });
 export const closeShiftSchema = z.object({

@@ -9,7 +9,7 @@ import { StockTable } from "./stock-table";
 
 export const metadata: Metadata = { title: "Inventario" };
 
-const TYPE_LABEL: Record<string, string> = { in: "Entrada", out: "Merma", adjust: "Conteo", sale: "Venta", void: "Anulación" };
+const TYPE_LABEL: Record<string, string> = { in: "Entrada", out: "Merma", adjust: "Conteo", sale: "Venta", void: "Anulación", consumption: "Consumo personal" };
 
 export default async function InventarioAdminPage() {
   await requireRole("admin");

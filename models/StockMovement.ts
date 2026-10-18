@@ -2,10 +2,11 @@ import { type InferSchemaType, Schema, model, models, type Model } from "mongoos
 
 const stockMovementSchema = new Schema({
   productId: { type: Schema.Types.ObjectId, ref: "Product", required: true },
-  type: { type: String, enum: ["in", "out", "sale", "void", "adjust"], required: true },
+  type: { type: String, enum: ["in", "out", "sale", "void", "adjust", "consumption"], required: true },
   qty: { type: Number, required: true }, // con signo: negativo = sale del inventario
   reason: String,
   saleId: { type: Schema.Types.ObjectId, ref: "Sale" }, // venta que lo generó (para devolver stock al anular)
+  consumptionId: { type: Schema.Types.ObjectId, ref: "Consumption" }, // consumo de personal que lo generó
   userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
   createdAt: { type: Date, default: Date.now },
 });

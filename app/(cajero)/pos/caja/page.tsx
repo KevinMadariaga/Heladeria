@@ -1,18 +1,32 @@
 import type { Metadata } from "next";
+import type { Types } from "mongoose";
 import { requireRole } from "@/lib/auth-guard";
 import { closeShiftTotals } from "@/lib/cash";
 import { formatCOP, formatDateTime, PAYMENT_LABELS } from "@/lib/money";
 import { shiftTotals } from "@/lib/sales";
 import { CashShift } from "@/models/CashShift";
+import { Consumption } from "@/models/Consumption";
 import { Sale } from "@/models/Sale";
 import { OpenShiftForm } from "../open-shift-form";
 import { CloseShiftForm } from "./close-shift-form";
 import { CloseResult, ShiftSummary } from "./shift-summary";
+import { ConsumptionList, type ConsumptionRow } from "@/components/consumption-list";
 import { SaleMethodButton } from "./sale-method-button";
 import { VoidSaleButton } from "@/components/void-sale-button";
 import { returnSaleAction } from "../actions";
 
 export const metadata: Metadata = { title: "Caja" };
+
+async function consumptionRows(shiftId: Types.ObjectId): Promise<ConsumptionRow[]> {
+  const docs = await Consumption.find({ shiftId }).sort({ createdAt: -1 }).lean();
+  return docs.map((c) => ({
+    id: String(c._id),
+    time: formatDateTime(c.createdAt),
+    detail: c.items.map((i) => `${i.qty}× ${i.name}${i.variant ? ` (${i.variant})` : ""}`).join(", "),
+    note: c.note ?? undefined,
+    total: c.total,
+  }));
+}
 
 export default async function CajaPage() {
   const user = await requireRole("admin", "cashier");
@@ -20,6 +34,7 @@ export default async function CajaPage() {
 
   if (!shift) {
     const last = await CashShift.findOne({ cashierId: user.id, status: "closed" }).sort({ closedAt: -1 }).lean();
+    const lastConsumptions = last ? await consumptionRows(last._id) : [];
     return (
       <div className="flex flex-col gap-6">
         {last && (
@@ -45,6 +60,7 @@ export default async function CajaPage() {
                 transferDifference={last.transferDifference}
                 note={last.closeNote}
               />
+              {lastConsumptions.length > 0 && <ConsumptionList rows={lastConsumptions} canDelete={false} />}
             </div>
           </section>
         )}
@@ -53,9 +69,10 @@ export default async function CajaPage() {
     );
   }
 
-  const [{ totalsByMethod, salesCount, deliveryFees, deliveryCount, containerFees, containerCount }, sales] = await Promise.all([
+  const [{ totalsByMethod, salesCount, deliveryFees, deliveryCount, containerFees, containerCount }, sales, consumptions] = await Promise.all([
     shiftTotals(shift._id),
     Sale.find({ shiftId: shift._id }).sort({ createdAt: -1 }).lean(),
+    consumptionRows(shift._id),
   ]);
   const { expectedCash, expectedTransfer } = closeShiftTotals(shift.openingCash, totalsByMethod, { cash: 0, transfer: 0 });
 
@@ -80,6 +97,7 @@ export default async function CajaPage() {
           containerFees={containerFees}
           containerCount={containerCount}
         />
+        <ConsumptionList rows={consumptions} canDelete />
         <CloseShiftForm expectedCash={expectedCash} expectedTransfer={expectedTransfer} />
       </section>
 

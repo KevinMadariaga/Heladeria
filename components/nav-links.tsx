@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
-import { BarChart3, Bike, Boxes, LayoutDashboard, Package, Shield, ShoppingCart, Users, Wallet, type LucideIcon } from "lucide-react";
+import { BarChart3, Bike, Boxes, HandCoins, LayoutDashboard, Package, Shield, ShoppingCart, Users, Wallet, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<string, LucideIcon> = {
@@ -11,6 +11,7 @@ const ICONS: Record<string, LucideIcon> = {
   "/admin/productos": Package,
   "/admin/inventario": Boxes,
   "/admin/reportes": BarChart3,
+  "/admin/consumos": HandCoins,
   "/admin/usuarios": Users,
   "/pos": ShoppingCart,
   "/pos/caja": Wallet,

@@ -4,9 +4,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth-guard";
 import { BusinessError } from "@/lib/cash";
-import { changePaymentMethod, closeShift, createSaleTx, openShift, setDeliveryStatus, voidSaleTx } from "@/lib/sales";
+import { changePaymentMethod, closeShift, createConsumptionTx, createSaleTx, deleteConsumptionTx, openShift, setDeliveryStatus, voidSaleTx } from "@/lib/sales";
 import { voidSchema } from "@/lib/validations/inventory";
-import { changeMethodSchema, closeShiftSchema, deliveryStatusSchema, openShiftSchema, saleInputSchema } from "@/lib/validations/sale";
+import { changeMethodSchema, closeShiftSchema, consumptionInputSchema, deliveryStatusSchema, objectId, openShiftSchema, saleInputSchema } from "@/lib/validations/sale";
 import { Sale } from "@/models/Sale";
 
 export type FormState = { ok?: boolean; error?: string } | undefined;
@@ -48,6 +48,37 @@ export async function submitSale(raw: unknown) {
     throw err;
   }
 }
+/** El cajero anota lo que saca para él (queda como deuda; no entra en la caja). */
+export async function submitConsumption(raw: unknown) {
+  const user = await requireRole("admin", "cashier");
+  const parsed = consumptionInputSchema.safeParse(raw);
+  if (!parsed.success) return { error: z.prettifyError(parsed.error) };
+  try {
+    await createConsumptionTx(user, parsed.data);
+  } catch (err) {
+    if (err instanceof BusinessError) return { error: err.message };
+    throw err;
+  }
+  revalidatePath("/pos", "layout");
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
+export async function deleteConsumptionAction(consumptionId: string) {
+  const user = await requireRole("admin", "cashier");
+  const parsed = objectId.safeParse(consumptionId);
+  if (!parsed.success) return { error: "Id inválido" };
+  try {
+    await deleteConsumptionTx(user, parsed.data);
+  } catch (err) {
+    if (err instanceof BusinessError) return { error: err.message };
+    throw err;
+  }
+  revalidatePath("/pos", "layout");
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
 export type TicketSale = NonNullable<Awaited<ReturnType<typeof submitSale>>["sale"]>;
 
 export async function openShiftAction(_prev: FormState, formData: FormData): Promise<FormState> {

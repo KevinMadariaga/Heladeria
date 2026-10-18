@@ -8,7 +8,7 @@ const STATUS = { paid: "Pagada", voided: "Anulada" } as const;
 const part = (s: { payments?: { method: string; amount: number }[] | null; paymentMethod: string; total: number }, m: string) =>
   s.payments ? s.payments.filter((p) => p.method === m).reduce((a, p) => a + p.amount, 0) : s.paymentMethod === m ? s.total : 0;
 
-const MOVE = { in: "Entrada", out: "Merma", adjust: "Conteo", sale: "Venta", void: "Anulación" } as const;
+const MOVE = { in: "Entrada", out: "Merma", adjust: "Conteo", sale: "Venta", void: "Anulación", consumption: "Consumo personal" } as const;
 
 export async function GET(req: Request) {
   try {

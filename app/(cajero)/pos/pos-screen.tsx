@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { AnimatePresence, motion, useAnimate } from "motion/react";
-import { Bike, CupSoda, Minus, Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
+import { Bike, CupSoda, HandCoins, Minus, Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
 import { Modal } from "@/components/modal";
 import { MoneyInput } from "@/components/money-input";
 import { ProductImage } from "@/components/product-image";
@@ -15,7 +15,7 @@ import { ACTIVE_PAYMENT_METHODS, formatCOP, PAYMENT_LABELS } from "@/lib/money";
 import { type ClientProduct, stockStatus } from "@/lib/serialize";
 import { cn } from "@/lib/utils";
 import type { PaymentMethod } from "@/models/Sale";
-import { submitSale, type TicketSale } from "./actions";
+import { submitConsumption, submitSale, type TicketSale } from "./actions";
 import { ChangeMethod, METHOD_ICON } from "./change-method";
 import { Ticket } from "./ticket";
 
@@ -169,6 +169,9 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
   const setDel = (k: keyof typeof delivery) => (v: string) => setDelivery((d) => ({ ...d, [k]: v }));
   const [error, setError] = useState("");
   const [ticket, setTicket] = useState<TicketSale | null>(null);
+  const [consuming, setConsuming] = useState(false); // confirmar "lo saco yo"
+  const [consumeNote, setConsumeNote] = useState("");
+  const [consumed, setConsumed] = useState(0); // total anotado (aviso)
   const [pending, startTransition] = useTransition();
   const cartRef = useRef<HTMLElement>(null);
   const [cartInView, setCartInView] = useState(false);
@@ -212,6 +215,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
         : [...c, { key, product, variant, addons: priced.addons, unitPrice: priced.unitPrice, qty }];
     });
     setError("");
+    setConsumed(0);
   }
 
   function pick(p: ClientProduct) {
@@ -249,6 +253,21 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
       setContainerFeeInput("");
       setIsDelivery(false);
       setDelivery({ customer: "", phone: "", address: "", notes: "", fee: "" });
+    });
+  }
+
+  function consume() {
+    setError("");
+    startTransition(async () => {
+      const res = await submitConsumption({
+        items: cart.map((l) => ({ productId: l.product.id, variant: l.variant, addons: l.addons.map((a) => a.name), qty: l.qty })),
+        note: consumeNote || undefined,
+      });
+      setConsuming(false);
+      if (res.error) return setError(res.error);
+      setConsumed(itemsTotal);
+      setCart([]);
+      setConsumeNote("");
     });
   }
 
@@ -504,6 +523,14 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
           <Button type="button" disabled={!cart.length || cashShort || mixedInvalid || deliveryInvalid || pending} onClick={checkout} className="press-3d h-14 rounded-2xl text-lg">
             {pending ? "Cobrando…" : `Cobrar ${formatCOP(total)}`}
           </Button>
+          <Button type="button" variant="outline" disabled={!cart.length || pending} onClick={() => setConsuming(true)} className="h-12 rounded-2xl">
+            <HandCoins aria-hidden /> Lo saco yo (anotar a mi cuenta)
+          </Button>
+          {consumed > 0 && (
+            <p role="status" className="text-sm text-muted-foreground">
+              Consumo anotado a tu cuenta: {formatCOP(consumed)}. Lo ves en Caja.
+            </p>
+          )}
         </div>
       </aside>
 
@@ -541,6 +568,27 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
             }}
           />
         )}
+      </Modal>
+
+      <Modal open={consuming} onClose={() => setConsuming(false)} title="Anotar a mi cuenta">
+        <div className="flex flex-col gap-4">
+          <p>
+            Vas a sacar {units} producto(s) por <strong>{formatCOP(itemsTotal)}</strong>. No entra dinero a la caja: queda anotado como lo que debes y el
+            administrador lo ve al final del mes.
+          </p>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="consume-note">Nota (opcional)</Label>
+            <Input id="consume-note" value={consumeNote} onChange={(e) => setConsumeNote(e.target.value)} placeholder="Ej: almuerzo" className="h-11" />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" className="h-11 rounded-xl" onClick={() => setConsuming(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" disabled={pending} className="h-11 rounded-xl" onClick={consume}>
+              {pending ? "Anotando…" : "Sí, anotar"}
+            </Button>
+          </div>
+        </div>
       </Modal>
 
       <Modal open={!!ticket} onClose={() => setTicket(null)} title="Venta registrada">

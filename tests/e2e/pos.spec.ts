@@ -204,3 +204,35 @@ test("pago mixto + domicilio + cierre que no cuadra exige nota", async ({ page }
   await expect(page.getByText("Faltó $ 500", { exact: false }).or(page.getByText(/Faltó \$\s?500/))).toBeVisible();
   await expect(page.getByText("Nota: Se dio mal un cambio")).toBeVisible();
 });
+
+test("cajero anota lo que saca: no entra en la caja, sale al cerrar y el admin ve cuánto debe", async ({ page }) => {
+  await loginCajeroConCajaAbierta(page, "10000");
+  const nota = `almuerzo ${Date.now()}`; // único: la base de pruebas guarda consumos de corridas anteriores
+  const carrito = page.getByRole("complementary", { name: "Carrito" });
+  await page.getByRole("region", { name: "Productos" }).getByRole("button", { name: /Torta de chocolate/ }).click();
+  await carrito.getByRole("button", { name: /Lo saco yo/ }).click();
+  const dialog = page.getByRole("dialog", { name: "Anotar a mi cuenta" });
+  await expect(dialog).toContainText(/\$\s?8\.000/);
+  await dialog.getByLabel("Nota (opcional)").fill(nota);
+  await dialog.getByRole("button", { name: "Sí, anotar" }).click();
+  await expect(carrito.getByText(/Consumo anotado a tu cuenta: \$\s?8\.000/)).toBeVisible();
+
+  // Caja: no suma dinero; se ve lo que sacó, y también en el último cierre
+  await page.getByRole("link", { name: "Caja" }).click();
+  await expect(fila(page, "Debes tener en efectivo")).toHaveText(/10\.000/);
+  await expect(page.getByText(nota)).toBeVisible();
+  await cerrarCuadrado(page);
+  await expect(page.getByRole("heading", { name: "Lo que sacaste (a tu cuenta)" })).toBeVisible();
+  await expect(page.getByText(nota)).toBeVisible();
+
+  // Admin: deuda del mes por cajero
+  await page.context().clearCookies();
+  await page.goto("/login");
+  await page.getByLabel("Usuario").fill("admin");
+  await page.getByLabel("Contraseña").fill("123456");
+  await page.getByRole("button", { name: "Ingresar" }).click();
+  await expect(page).toHaveURL(/\/admin$/);
+  await page.goto("/admin/consumos");
+  await expect(page.locator("dt", { hasText: "Cajero E2E" }).locator("+ dd")).toHaveText(/debe \$\s?[\d.]+/);
+  await expect(page.getByText(nota)).toBeVisible();
+});
