@@ -46,8 +46,8 @@ function Item({ row, canDelete }: { row: ConsumptionRow; canDelete: boolean }) {
   const [pending, startTransition] = useTransition();
   return (
     <li className="flex flex-wrap items-center gap-2 py-1.5">
-      <span className="text-muted-foreground">{row.time}</span>
-      <span className="min-w-0 flex-1">
+      <span className="flex-1 text-muted-foreground">{row.time}</span>
+      <span className="order-last min-w-0 basis-full">
         {row.detail}
         {row.note && <span className="text-muted-foreground"> · {row.note}</span>}
       </span>
