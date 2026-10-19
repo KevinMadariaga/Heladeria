@@ -147,7 +147,7 @@ export function Catalog({ products, categories }: { products: ClientProduct[]; c
           />
         </div>
       </div>
-      <div role="group" aria-label="Filtrar por categoría" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+      <div role="group" aria-label="Filtrar por categoría" className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 sm:-mx-4 sm:px-4">
         {[{ id: "all", name: "Todo", color: "var(--uva-700)" }, ...categories].map((c) => (
           <Button
             key={c.id}

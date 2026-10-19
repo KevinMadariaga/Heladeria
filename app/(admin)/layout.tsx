@@ -3,12 +3,12 @@ import { auth } from "@/auth";
 import { AppHeader } from "@/components/app-header";
 
 const links = [
-  { href: "/admin", label: "Dashboard" },
-  { href: "/admin/productos", label: "Productos" },
-  { href: "/admin/inventario", label: "Inventario" },
-  { href: "/admin/reportes", label: "Reportes" },
-  { href: "/admin/consumos", label: "Consumos" },
-  { href: "/admin/usuarios", label: "Usuarios" },
+  { href: "/admin", label: "Dashboard", short: "Inicio" },
+  { href: "/admin/productos", label: "Productos", short: "Menú" },
+  { href: "/admin/inventario", label: "Inventario", short: "Stock" },
+  { href: "/admin/reportes", label: "Reportes", short: "Ventas" },
+  { href: "/admin/consumos", label: "Consumos", short: "Deudas" },
+  { href: "/admin/usuarios", label: "Usuarios", short: "Equipo" },
   { href: "/pos", label: "POS" },
 ];
 

@@ -39,14 +39,14 @@ function ProductCard({ product, color, inCart, onPick }: { product: ClientProduc
         onPick();
       }}
       className={cn(
-        "lift sticker relative flex flex-col gap-2 bg-card p-2 text-left focus-visible:ring-4 focus-visible:ring-ring disabled:opacity-50",
+        "lift sticker relative flex flex-col gap-1 bg-card p-1.5 text-left sm:gap-2 sm:p-2 focus-visible:ring-4 focus-visible:ring-ring disabled:opacity-50",
         inCart > 0 && "outline-4 outline-offset-0 outline-lila-400",
       )}
     >
       <div className="relative">
         <ProductImage src={product.imageUrl} name={product.name} color={color} className="aspect-[4/3]" />
         {/* Etiqueta de precio tipo sticker */}
-        <span className="absolute right-1.5 bottom-1.5 rounded-full border-2 border-white bg-card px-2.5 py-0.5 font-heading text-sm font-semibold text-primary shadow-md">
+        <span className="absolute right-1 bottom-1 max-w-[calc(100%-0.5rem)] truncate rounded-full border-2 border-white bg-card px-1.5 py-0.5 font-heading text-xs font-semibold text-primary shadow-md sm:right-1.5 sm:bottom-1.5 sm:px-2.5 sm:text-sm">
           {product.variants.length > 0 && <span className="font-normal text-muted-foreground">desde </span>}
           {formatCOP(price)}
         </span>
@@ -54,7 +54,7 @@ function ProductCard({ product, color, inCart, onPick }: { product: ClientProduc
           <StockBadge product={product} />
         </span>
       </div>
-      <span className="line-clamp-2 min-h-[2.5em] px-1 pb-0.5 font-heading leading-tight font-semibold">{product.name}</span>
+      <span className="line-clamp-2 min-h-[2.5em] px-0.5 pb-0.5 font-heading text-[13px] leading-tight font-semibold sm:px-1 sm:text-base">{product.name}</span>
       <AnimatePresence>
         {inCart > 0 && (
           <motion.span
@@ -64,7 +64,7 @@ function ProductCard({ product, color, inCart, onPick }: { product: ClientProduc
             exit={{ transform: "scale(0.6)", opacity: 0 }}
             transition={{ type: "spring", duration: 0.3, bounce: 0.3 }}
             aria-label={`${inCart} en el pedido`}
-            className="absolute -top-2 -right-2 grid size-8 place-items-center rounded-full bg-primary font-heading text-sm text-primary-foreground ring-4 ring-white"
+            className="absolute -top-2 -right-2 grid size-7 place-items-center sm:size-8 rounded-full bg-primary font-heading text-sm text-primary-foreground ring-4 ring-white"
           >
             {inCart}
           </motion.span>
@@ -299,7 +299,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                 title={c.name}
                 onClick={() => setCat(c.id)}
                 className={cn(
-                  "flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-full border-2 px-2 font-heading text-sm transition-[background-color,color,transform] duration-150 active:scale-[0.97] sm:text-base",
+                  "flex h-9 min-w-0 items-center justify-center gap-1.5 rounded-full border-2 px-2 font-heading text-sm sm:h-11 transition-[background-color,color,transform] duration-150 active:scale-[0.97] sm:text-base",
                   on ? "border-white bg-primary text-primary-foreground shadow-[0_3px_0_var(--press-shadow)]" : "border-white bg-card text-foreground shadow-sm",
                 )}
               >
@@ -312,7 +312,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
         {visible.length === 0 ? (
           <p className="py-10 text-center text-muted-foreground">No hay productos para mostrar.</p>
         ) : (
-          <div className="grid grid-cols-2 gap-3 pt-1 sm:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-3 gap-2 pt-1 sm:gap-3 xl:grid-cols-4">
             {visible.map((p) => (
               <ProductCard key={p.id} product={p} color={colorOf.get(p.categoryId)} inCart={inCart.get(p.id) ?? 0} onPick={() => pick(p)} />
             ))}

@@ -23,7 +23,7 @@ const ICONS: Record<string, LucideIcon> = {
  * Menú principal. Móvil: barra inferior fija con íconos (alcance del pulgar, no roba alto arriba).
  * Desde md: fila dentro del encabezado. La opción activa lleva un fondo que se desliza (200ms ease-out).
  */
-export function NavLinks({ links }: { links: { href: string; label: string }[] }) {
+export function NavLinks({ links }: { links: { href: string; label: string; short?: string }[] }) {
   const pathname = usePathname();
   // Activa = el href más largo que coincide (/admin/productos gana sobre /admin).
   const active = links
@@ -47,7 +47,7 @@ export function NavLinks({ links }: { links: { href: string; label: string }[] }
             href={l.href}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "relative flex h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 font-heading text-[10.5px] leading-none tracking-tight transition-colors duration-150 select-none",
+              "relative flex h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 font-heading text-[10.5px] leading-none tracking-tight transition-colors duration-150 select-none",
               "md:h-10 md:flex-row md:px-3 md:text-base md:tracking-normal",
               isActive ? "text-primary-foreground" : "text-foreground md:hover:bg-muted",
             )}
@@ -61,7 +61,8 @@ export function NavLinks({ links }: { links: { href: string; label: string }[] }
               />
             )}
             <Icon aria-hidden className="relative size-5 md:hidden" />
-            <span className="relative max-w-full truncate">{l.label}</span>
+            <span className="relative max-w-full truncate md:hidden">{l.short ?? l.label}</span>
+            <span className="relative hidden md:inline">{l.label}</span>
           </Link>
         );
       })}

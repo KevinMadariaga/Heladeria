@@ -4,7 +4,7 @@ import { signOut } from "@/auth";
 import { Button } from "@/components/ui/button";
 
 // Sin backdrop-blur en móvil: crearía un containing block y la barra inferior (fixed) quedaría atrapada en el header.
-export function AppHeader({ links, userName }: { links: { href: string; label: string }[]; userName: string }) {
+export function AppHeader({ links, userName }: { links: { href: string; label: string; short?: string }[]; userName: string }) {
   return (
     <header className="z-20 border-b-4 border-[var(--sticker-edge)] bg-card pt-[env(safe-area-inset-top,0px)] md:sticky md:top-0 md:bg-card/90 md:backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-1.5 md:gap-4 md:py-2">
