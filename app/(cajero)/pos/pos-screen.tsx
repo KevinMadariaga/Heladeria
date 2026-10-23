@@ -409,17 +409,85 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
             {/* Escritorio: opciones y pago toman su alto; la lista de arriba usa lo que sobra */}
             <div className="flex flex-col gap-3 lg:-mx-1 lg:min-h-[9.5rem] lg:overflow-y-auto lg:overscroll-contain lg:px-1">
               <div className="flex flex-col gap-2 border-t-2 border-dashed border-border pt-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <label className={TOGGLE}>
-                    <Bike aria-hidden className="size-4 shrink-0 text-primary" />
-                    <span className="flex-1">Es domicilio</span>
-                    <input type="checkbox" checked={isDelivery} onChange={(e) => toggleOption("delivery", e.target.checked)} className="size-4 shrink-0 accent-primary" />
-                  </label>
-                  <label className={TOGGLE}>
-                    <CupSoda aria-hidden className="size-4 shrink-0 text-primary" />
-                    <span className="flex-1">Lleva porta</span>
-                    <input type="checkbox" checked={hasContainer} onChange={(e) => toggleOption("container", e.target.checked)} className="size-4 shrink-0 accent-primary" />
-                  </label>
+                <div role="radiogroup" aria-label="Método de pago" className="grid grid-cols-3 gap-2">
+                  {METHODS.map((m) => {
+                    const Icon = METHOD_ICON[m];
+                    const on = method === m;
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        role="radio"
+                        aria-checked={on}
+                        onClick={() => setMethod(m)}
+                        className={cn(
+                          "flex h-10 items-center justify-center gap-1.5 rounded-xl border-2 font-heading text-xs transition-[background-color,color,border-color,transform] duration-150 active:scale-[0.97] sm:text-sm",
+                          on ? "border-primary bg-primary text-primary-foreground shadow-[0_3px_0_var(--press-shadow)]" : "border-border bg-card text-foreground",
+                        )}
+                      >
+                        <Icon aria-hidden className="size-4 shrink-0" />
+                        {PAYMENT_LABELS[m]}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  {takesCash && (
+                    <div className="flex min-w-0 flex-1 flex-col gap-1.5 rounded-2xl bg-lila-100/70 p-2.5">
+                      {method === "mixed" && (
+                        <>
+                          <div className="flex items-baseline justify-between gap-2">
+                            <label htmlFor="transferAmount" className="font-heading text-xs font-medium">
+                              Valor por transferencia
+                            </label>
+                            <p className="font-heading text-sm tabular-nums">
+                              {mixedInvalid ? (
+                                <span className="text-destructive">Debe ser mayor a $ 0 y menor a {formatCOP(total)}</span>
+                              ) : (
+                                <>
+                                  En efectivo: <strong>{formatCOP(cashPart)}</strong>
+                                </>
+                              )}
+                            </p>
+                          </div>
+                          <MoneyInput id="transferAmount" value={transferAmount} onValueChange={setTransferAmount} className="h-9 bg-card" aria-invalid={mixedInvalid} />
+                        </>
+                      )}
+                      {/* Casilla angosta y el cambio en grande justo al lado */}
+                      <div className="grid grid-cols-[minmax(6rem,9rem)_minmax(0,1fr)] items-center gap-x-3 gap-y-1.5">
+                        <label htmlFor="cashReceived" className="col-span-2 font-heading text-xs font-medium">
+                          Efectivo recibido (vacío = exacto)
+                        </label>
+                        <MoneyInput id="cashReceived" value={cashReceived} onValueChange={setCashReceived} className="h-10 bg-card text-base" aria-invalid={cashShort} />
+                        <p aria-live="polite" className={cn("flex items-baseline gap-1.5 font-heading tabular-nums", cashShort ? "text-destructive" : "text-primary")}>
+                          <span className="text-sm font-medium text-muted-foreground">{cashShort ? "Faltan:" : "Cambio:"}</span>{" "}
+                          <span className="truncate text-2xl leading-none font-semibold sm:text-3xl">
+                            {formatCOP(cashShort ? cashPart - received : cashReceived === "" ? 0 : received - cashPart)}
+                          </span>
+                        </p>
+                        <div className="col-span-2 flex flex-wrap gap-1.5">
+                          {QUICK_CASH.filter((v) => v >= cashPart).slice(0, 3).map((v) => (
+                            <Button key={v} type="button" variant="outline" className="h-8 rounded-full bg-card px-2.5 text-xs" onClick={() => setCashReceived(String(v))}>
+                              {formatCOP(v)}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {/* Domicilio y porta al lado del efectivo (debajo en celular) */}
+                  <div className={cn("grid grid-cols-2 gap-2", takesCash && "sm:flex sm:w-40 sm:shrink-0 sm:flex-col")}>
+                    <label className={cn(TOGGLE, takesCash && "sm:h-auto sm:flex-1")}>
+                      <Bike aria-hidden className="size-4 shrink-0 text-primary" />
+                      <span className="flex-1">Es domicilio</span>
+                      <input type="checkbox" checked={isDelivery} onChange={(e) => toggleOption("delivery", e.target.checked)} className="size-4 shrink-0 accent-primary" />
+                    </label>
+                    <label className={cn(TOGGLE, takesCash && "sm:h-auto sm:flex-1")}>
+                      <CupSoda aria-hidden className="size-4 shrink-0 text-primary" />
+                      <span className="flex-1">Lleva porta</span>
+                      <input type="checkbox" checked={hasContainer} onChange={(e) => toggleOption("container", e.target.checked)} className="size-4 shrink-0 accent-primary" />
+                    </label>
+                  </div>
                 </div>
                 {isDelivery && (
                   <fieldset id="delivery-fields" className="grid grid-cols-2 gap-2 rounded-2xl bg-lila-100/70 p-2.5 sm:grid-cols-3">
@@ -488,73 +556,6 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                   </fieldset>
                 )}
               </div>
-
-              <div role="radiogroup" aria-label="Método de pago" className="grid grid-cols-3 gap-2">
-                {METHODS.map((m) => {
-                  const Icon = METHOD_ICON[m];
-                  const on = method === m;
-                  return (
-                    <button
-                      key={m}
-                      type="button"
-                      role="radio"
-                      aria-checked={on}
-                      onClick={() => setMethod(m)}
-                      className={cn(
-                        "flex h-10 items-center justify-center gap-1.5 rounded-xl border-2 font-heading text-xs transition-[background-color,color,border-color,transform] duration-150 active:scale-[0.97] sm:text-sm",
-                        on ? "border-primary bg-primary text-primary-foreground shadow-[0_3px_0_var(--press-shadow)]" : "border-border bg-card text-foreground",
-                      )}
-                    >
-                      <Icon aria-hidden className="size-4 shrink-0" />
-                      {PAYMENT_LABELS[m]}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {takesCash && (
-                <div className="flex flex-col gap-1.5 rounded-2xl bg-lila-100/70 p-2.5">
-                  {method === "mixed" && (
-                    <>
-                      <div className="flex items-baseline justify-between gap-2">
-                        <label htmlFor="transferAmount" className="font-heading text-xs font-medium">
-                          Valor por transferencia
-                        </label>
-                        <p className="font-heading text-sm tabular-nums">
-                          {mixedInvalid ? (
-                            <span className="text-destructive">Debe ser mayor a $ 0 y menor a {formatCOP(total)}</span>
-                          ) : (
-                            <>
-                              En efectivo: <strong>{formatCOP(cashPart)}</strong>
-                            </>
-                          )}
-                        </p>
-                      </div>
-                      <MoneyInput id="transferAmount" value={transferAmount} onValueChange={setTransferAmount} className="h-9 bg-card" aria-invalid={mixedInvalid} />
-                    </>
-                  )}
-                  {/* Casilla a media anchura y el cambio en grande justo al lado */}
-                  <div className="grid grid-cols-2 items-center gap-x-3 gap-y-1.5">
-                    <label htmlFor="cashReceived" className="col-span-2 font-heading text-xs font-medium">
-                      Efectivo recibido (vacío = exacto)
-                    </label>
-                    <MoneyInput id="cashReceived" value={cashReceived} onValueChange={setCashReceived} className="h-10 bg-card text-base" aria-invalid={cashShort} />
-                    <p aria-live="polite" className={cn("flex items-baseline gap-1.5 font-heading tabular-nums", cashShort ? "text-destructive" : "text-primary")}>
-                      <span className="text-sm font-medium text-muted-foreground">{cashShort ? "Faltan:" : "Cambio:"}</span>{" "}
-                      <span className="truncate text-2xl leading-none font-semibold sm:text-3xl">
-                        {formatCOP(cashShort ? cashPart - received : cashReceived === "" ? 0 : received - cashPart)}
-                      </span>
-                    </p>
-                    <div className="col-span-2 flex flex-wrap gap-1.5">
-                      {QUICK_CASH.filter((v) => v >= cashPart).slice(0, 3).map((v) => (
-                        <Button key={v} type="button" variant="outline" className="h-8 rounded-full bg-card px-2.5 text-xs" onClick={() => setCashReceived(String(v))}>
-                          {formatCOP(v)}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {error && (
                 <p role="alert" className="text-sm text-destructive">
