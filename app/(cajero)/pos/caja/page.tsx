@@ -79,11 +79,14 @@ export default async function CajaPage() {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <section aria-labelledby="turno" className="sticker flex flex-col gap-4 self-start bg-card p-5 xl:p-6">
-        <div>
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
           <h1 id="turno" className="text-2xl font-semibold">
             Mi caja
           </h1>
-          <p className="text-sm text-muted-foreground">Abierta: {formatDateTime(shift.openedAt)}</p>
+          <p className="text-right">
+            <span className="block text-xs text-muted-foreground">Abierta</span>
+            <span className="font-heading text-xl font-semibold tabular-nums">{formatDateTime(shift.openedAt)}</span>
+          </p>
         </div>
         <p className="text-sm">
           Base inicial: <strong className="font-heading">{formatCOP(shift.openingCash)}</strong>
