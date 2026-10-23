@@ -43,7 +43,7 @@ test("cajero abre caja, vende y cierra cuadrado", async ({ page }) => {
   // Producto simple: Tinto tiene variantes; Latte no → directo al carrito (7500)
   await page.getByRole("button", { name: /Latte/ }).click();
   const carrito = page.getByRole("complementary", { name: "Carrito" });
-  await expect(carrito.getByText(/\$\s?17\.500/).first()).toBeVisible();
+  await expect(carrito.getByRole("button", { name: /Cobrar \$\s?17\.500/ })).toBeVisible();
 
   await carrito.getByLabel("Efectivo recibido (vacío = exacto)").fill("20000");
   await expect(carrito.getByText(/Cambio: \$\s?2\.500/)).toBeVisible();
@@ -163,7 +163,7 @@ test("pago mixto + domicilio + cierre que no cuadra exige nota", async ({ page }
   await carrito.getByLabel("Dirección *").fill("Calle 10 # 5-20");
   await carrito.getByLabel("Teléfono").fill("3001234567");
   await carrito.getByLabel("Valor domicilio").fill("3000");
-  await carrito.getByLabel("Lleva porta / envase").check();
+  await carrito.getByLabel("Lleva porta").check();
   await carrito.getByLabel("Cantidad").fill("2");
   await carrito.getByLabel("Valor de cada porta").fill("500");
   await carrito.getByRole("radio", { name: "Transferencia" }).click();
