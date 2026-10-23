@@ -288,7 +288,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
   for (const l of cart) inCart.set(l.product.id, (inCart.get(l.product.id) ?? 0) + l.qty);
 
   return (
-    <div className="grid gap-4 pb-20 sm:gap-6 lg:grid-cols-2 lg:pb-0">
+    <div className="grid gap-4 pb-20 sm:gap-6 lg:grid-cols-[11fr_9fr] lg:pb-0">
       <section aria-label="Productos" className="flex min-w-0 flex-col gap-3">
         <div className="relative">
           <Search aria-hidden className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" />
