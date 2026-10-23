@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { AnimatePresence, motion, useAnimate } from "motion/react";
-import { Bike, CupSoda, HandCoins, Minus, Pencil, Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
+import { Bike, CupSoda, HandCoins, Minus, Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
 import { Modal } from "@/components/modal";
 import { MoneyInput } from "@/components/money-input";
 import { ProductImage } from "@/components/product-image";
@@ -24,6 +24,8 @@ type Line = { key: string; product: ClientProduct; variant?: string; addons: Opt
 
 const METHODS = ACTIVE_PAYMENT_METHODS;
 const QUICK_CASH = [10000, 20000, 50000, 100000];
+const TOGGLE =
+  "flex h-10 cursor-pointer items-center gap-2 rounded-xl border-2 border-border bg-card px-3 font-heading text-sm transition-[background-color,border-color,transform] duration-150 active:scale-[0.97] has-checked:border-primary has-checked:bg-lila-100 has-focus-visible:ring-4 has-focus-visible:ring-ring";
 
 function ProductCard({ product, color, inCart, onPick }: { product: ClientProduct; color?: string; inCart: number; onPick: () => void }) {
   const [scope, animate] = useAnimate();
@@ -172,7 +174,6 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
   const [error, setError] = useState("");
   const [ticket, setTicket] = useState<TicketSale | null>(null);
   const [consuming, setConsuming] = useState(false); // confirmar "lo saco yo"
-  const [editing, setEditing] = useState<"delivery" | "container" | null>(null); // ventana de domicilio / porta abierta
   const [consumeNote, setConsumeNote] = useState("");
   const [consumed, setConsumed] = useState(0); // total anotado (aviso)
   const [pending, startTransition] = useTransition();
@@ -228,11 +229,9 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
 
   const setQty = (key: string, qty: number) => setCart((c) => (qty <= 0 ? c.filter((l) => l.key !== key) : c.map((l) => (l.key === key ? { ...l, qty } : l))));
 
-  // Marcar domicilio / porta abre su ventana con los campos; desmarcar lo quita.
+  // Marcar domicilio / porta muestra sus campos debajo y lleva el cursor al primero.
   function toggleOption(kind: "delivery" | "container", on: boolean) {
     (kind === "delivery" ? setIsDelivery : setHasContainer)(on);
-    setEditing(on ? kind : null);
-    // Al abrir, el cursor va directo al primer dato (el <dialog> enfocaría la X).
     if (on) requestAnimationFrame(() => document.getElementById(kind === "delivery" ? "del-customer" : "container-fee")?.focus());
   }
 
@@ -358,7 +357,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
               <p>Toca un producto para agregarlo al pedido.</p>
             </div>
           ) : (
-            <ul className="-mx-1 flex max-h-[42dvh] flex-col gap-2 lg:max-h-none lg:min-h-[8rem] overflow-y-auto overscroll-contain px-1">
+            <ul className="-mx-1 flex max-h-[42dvh] flex-col gap-2 lg:max-h-none lg:min-h-[8rem] lg:flex-1 overflow-y-auto overscroll-contain px-1">
               <AnimatePresence initial={false}>
                 {cart.map((l) => (
                   <motion.li
@@ -407,45 +406,87 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
 
           {/* Celular: con el pedido vacío solo se ve el aviso, para que los productos queden cerca */}
           <div className={cn("contents", !cart.length && "max-lg:hidden")}>
-            {/* Escritorio: la lista de arriba crece; opciones y pago tienen su propio scroll */}
-            <div className="flex flex-col gap-4 lg:-mx-1 lg:min-h-[9.5rem] lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:px-1">
-              <div className="flex flex-col gap-3 border-t-2 border-dashed border-border pt-3">
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div className="flex min-h-14 items-center rounded-2xl border-2 border-border bg-card transition-[background-color,border-color] duration-150 has-checked:border-primary has-checked:bg-lila-100 has-focus-visible:ring-4 has-focus-visible:ring-ring">
-                    <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 self-stretch py-2 pl-3 font-heading text-sm active:scale-[0.97] transition-transform duration-150">
-                      <Bike aria-hidden className="size-5 shrink-0 text-primary" />
-                      <span className="min-w-0 flex-1 leading-tight">
-                        Es domicilio
-                        {isDelivery && <span className={cn("block truncate text-xs font-normal", deliveryInvalid ? "text-destructive" : "text-muted-foreground")}>{deliveryInvalid ? "Faltan datos" : [delivery.customer, fee > 0 && formatCOP(fee)].filter(Boolean).join(" · ")}</span>}
-                      </span>
-                      <input type="checkbox" checked={isDelivery} onChange={(e) => toggleOption("delivery", e.target.checked)} className="size-5 shrink-0 accent-primary" />
-                    </label>
-                    {isDelivery ? (
-                      <button type="button" aria-label="Editar es domicilio" onClick={() => setEditing("delivery")} className="grid size-10 shrink-0 place-items-center rounded-full text-primary active:bg-muted">
-                        <Pencil className="size-4" />
-                      </button>
-                    ) : (
-                      <span className="w-3 shrink-0" />
-                    )}
-                  </div>
-                  <div className="flex min-h-14 items-center rounded-2xl border-2 border-border bg-card transition-[background-color,border-color] duration-150 has-checked:border-primary has-checked:bg-lila-100 has-focus-visible:ring-4 has-focus-visible:ring-ring">
-                    <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 self-stretch py-2 pl-3 font-heading text-sm active:scale-[0.97] transition-transform duration-150">
-                      <CupSoda aria-hidden className="size-5 shrink-0 text-primary" />
-                      <span className="min-w-0 flex-1 leading-tight">
-                        Lleva porta
-                        {hasContainer && <span className="block truncate text-xs font-normal text-muted-foreground">{containerQty} · {formatCOP(containerFee)}</span>}
-                      </span>
-                      <input type="checkbox" checked={hasContainer} onChange={(e) => toggleOption("container", e.target.checked)} className="size-5 shrink-0 accent-primary" />
-                    </label>
-                    {hasContainer ? (
-                      <button type="button" aria-label="Editar lleva porta" onClick={() => setEditing("container")} className="grid size-10 shrink-0 place-items-center rounded-full text-primary active:bg-muted">
-                        <Pencil className="size-4" />
-                      </button>
-                    ) : (
-                      <span className="w-3 shrink-0" />
-                    )}
-                  </div>
+            {/* Escritorio: opciones y pago toman su alto; la lista de arriba usa lo que sobra */}
+            <div className="flex flex-col gap-3 lg:-mx-1 lg:min-h-[9.5rem] lg:overflow-y-auto lg:overscroll-contain lg:px-1">
+              <div className="flex flex-col gap-2 border-t-2 border-dashed border-border pt-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <label className={TOGGLE}>
+                    <Bike aria-hidden className="size-4 shrink-0 text-primary" />
+                    <span className="flex-1">Es domicilio</span>
+                    <input type="checkbox" checked={isDelivery} onChange={(e) => toggleOption("delivery", e.target.checked)} className="size-4 shrink-0 accent-primary" />
+                  </label>
+                  <label className={TOGGLE}>
+                    <CupSoda aria-hidden className="size-4 shrink-0 text-primary" />
+                    <span className="flex-1">Lleva porta</span>
+                    <input type="checkbox" checked={hasContainer} onChange={(e) => toggleOption("container", e.target.checked)} className="size-4 shrink-0 accent-primary" />
+                  </label>
                 </div>
+                {isDelivery && (
+                  <fieldset id="delivery-fields" className="grid grid-cols-2 gap-2 rounded-2xl bg-lila-100/70 p-2.5 sm:grid-cols-3">
+                    <legend className="sr-only">Datos del domicilio</legend>
+                    <div className="flex flex-col gap-1">
+                      <Label htmlFor="del-customer" className="text-xs">Cliente *</Label>
+                      <Input id="del-customer" value={delivery.customer} onChange={(e) => setDel("customer")(e.target.value)} autoComplete="off" className="h-9 bg-card" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Label htmlFor="del-phone" className="text-xs">Teléfono</Label>
+                      <Input id="del-phone" type="tel" inputMode="tel" value={delivery.phone} onChange={(e) => setDel("phone")(e.target.value)} className="h-9 bg-card" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Label htmlFor="del-fee" className="text-xs">Valor domicilio</Label>
+                      <MoneyInput id="del-fee" value={delivery.fee} onValueChange={setDel("fee")} className="h-9 bg-card" />
+                    </div>
+                    <div className="flex flex-col gap-1 sm:order-last">
+                      <Label htmlFor="del-notes" className="text-xs">Notas</Label>
+                      <Input id="del-notes" value={delivery.notes} onChange={(e) => setDel("notes")(e.target.value)} placeholder="Torre 2, apto 301" className="h-9 bg-card" />
+                    </div>
+                    <div className="col-span-2 flex flex-col gap-1">
+                      <Label htmlFor="del-address" className="text-xs">Dirección *</Label>
+                      <Input id="del-address" value={delivery.address} onChange={(e) => setDel("address")(e.target.value)} autoComplete="off" className="h-9 bg-card" />
+                    </div>
+                  </fieldset>
+                )}
+                {hasContainer && (
+                  <fieldset id="container-fields" className="grid grid-cols-[auto_1fr_auto] items-end gap-2 rounded-2xl bg-lila-100/70 p-2.5">
+                    <legend className="sr-only">Porta / envase</legend>
+                    <div className="flex flex-col gap-1">
+                      <Label htmlFor="container-qty" className="text-xs">Cantidad</Label>
+                      <div className="flex h-9 items-center rounded-full border-2 border-white bg-card shadow-sm">
+                        <button
+                          type="button"
+                          aria-label="Un porta menos"
+                          onClick={() => setContainerQty((q) => Math.max(1, q - 1))}
+                          className="grid size-8 place-items-center rounded-full text-primary active:bg-muted"
+                        >
+                          <Minus className="size-4" />
+                        </button>
+                        <input
+                          id="container-qty"
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          max={99}
+                          value={containerQty}
+                          onChange={(e) => setContainerQty(Math.min(99, Math.max(1, Math.trunc(Number(e.target.value)) || 1)))}
+                          className="w-7 [appearance:textfield] bg-transparent text-center font-heading tabular-nums outline-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <button
+                          type="button"
+                          aria-label="Un porta más"
+                          onClick={() => setContainerQty((q) => Math.min(99, q + 1))}
+                          className="grid size-8 place-items-center rounded-full text-primary active:bg-muted"
+                        >
+                          <Plus className="size-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Label htmlFor="container-fee" className="text-xs">Valor de cada porta</Label>
+                      <MoneyInput id="container-fee" value={containerFeeInput} onValueChange={setContainerFeeInput} className="h-9 bg-card" />
+                    </div>
+                    <p className="pb-2 font-heading text-sm tabular-nums">= {formatCOP(containerFee)}</p>
+                  </fieldset>
+                )}
               </div>
 
               <div role="radiogroup" aria-label="Método de pago" className="grid grid-cols-3 gap-2">
@@ -460,11 +501,11 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                       aria-checked={on}
                       onClick={() => setMethod(m)}
                       className={cn(
-                        "flex h-16 flex-col items-center justify-center gap-1 rounded-2xl border-2 font-heading text-xs transition-[background-color,color,border-color,transform] duration-150 active:scale-[0.97]",
+                        "flex h-10 items-center justify-center gap-1.5 rounded-xl border-2 font-heading text-xs transition-[background-color,color,border-color,transform] duration-150 active:scale-[0.97] sm:text-sm",
                         on ? "border-primary bg-primary text-primary-foreground shadow-[0_3px_0_var(--press-shadow)]" : "border-border bg-card text-foreground",
                       )}
                     >
-                      <Icon aria-hidden className="size-5" />
+                      <Icon aria-hidden className="size-4 shrink-0" />
                       {PAYMENT_LABELS[m]}
                     </button>
                   );
@@ -472,38 +513,44 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
               </div>
 
               {takesCash && (
-                <div className="flex flex-col gap-2 rounded-2xl bg-lila-100/70 p-3">
+                <div className="flex flex-col gap-1.5 rounded-2xl bg-lila-100/70 p-2.5">
                   {method === "mixed" && (
                     <>
-                      <label htmlFor="transferAmount" className="font-heading text-sm font-medium">
-                        Valor por transferencia
-                      </label>
-                      <MoneyInput id="transferAmount" value={transferAmount} onValueChange={setTransferAmount} className="h-12 bg-card text-lg" aria-invalid={mixedInvalid} />
-                      <p className="font-heading tabular-nums">
-                        {mixedInvalid ? (
-                          <span className="text-destructive">Debe ser mayor a $ 0 y menor a {formatCOP(total)}</span>
-                        ) : (
-                          <>
-                            En efectivo: <strong>{formatCOP(cashPart)}</strong>
-                          </>
-                        )}
-                      </p>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <label htmlFor="transferAmount" className="font-heading text-xs font-medium">
+                          Valor por transferencia
+                        </label>
+                        <p className="font-heading text-sm tabular-nums">
+                          {mixedInvalid ? (
+                            <span className="text-destructive">Debe ser mayor a $ 0 y menor a {formatCOP(total)}</span>
+                          ) : (
+                            <>
+                              En efectivo: <strong>{formatCOP(cashPart)}</strong>
+                            </>
+                          )}
+                        </p>
+                      </div>
+                      <MoneyInput id="transferAmount" value={transferAmount} onValueChange={setTransferAmount} className="h-9 bg-card" aria-invalid={mixedInvalid} />
                     </>
                   )}
-                  <label htmlFor="cashReceived" className="font-heading text-sm font-medium">
-                    Efectivo recibido (vacío = exacto)
-                  </label>
-                  <MoneyInput id="cashReceived" value={cashReceived} onValueChange={setCashReceived} className="h-12 bg-card text-lg" aria-invalid={cashShort} />
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <label htmlFor="cashReceived" className="font-heading text-xs font-medium">
+                      Efectivo recibido (vacío = exacto)
+                    </label>
+                    <p aria-live="polite" className={cn("font-heading text-sm font-semibold tabular-nums", cashShort && "text-destructive")}>
+                      {cashShort ? `Faltan ${formatCOP(cashPart - received)}` : `Cambio: ${formatCOP(cashReceived === "" ? 0 : received - cashPart)}`}
+                    </p>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <div className="min-w-0 flex-1">
+                      <MoneyInput id="cashReceived" value={cashReceived} onValueChange={setCashReceived} className="h-9 bg-card" aria-invalid={cashShort} />
+                    </div>
                     {QUICK_CASH.filter((v) => v >= cashPart).slice(0, 3).map((v) => (
-                      <Button key={v} type="button" variant="outline" className="h-10 rounded-full bg-card" onClick={() => setCashReceived(String(v))}>
+                      <Button key={v} type="button" variant="outline" className="h-9 rounded-full bg-card px-2.5 text-xs" onClick={() => setCashReceived(String(v))}>
                         {formatCOP(v)}
                       </Button>
                     ))}
                   </div>
-                  <p aria-live="polite" className={cn("font-heading text-lg tabular-nums", cashShort && "text-destructive")}>
-                    {cashShort ? `Faltan ${formatCOP(cashPart - received)}` : `Cambio: ${formatCOP(cashReceived === "" ? 0 : received - cashPart)}`}
-                  </p>
                 </div>
               )}
 
@@ -514,9 +561,9 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
               )}
             </div>
             {/* Total y cobro siempre a la vista */}
-            <div className="flex shrink-0 flex-col gap-3 lg:border-t-2 lg:border-dashed lg:border-border lg:pt-3">
+            <div className="flex shrink-0 flex-col gap-2 lg:border-t-2 lg:border-dashed lg:border-border lg:pt-2.5">
               {(fee > 0 || containerFee > 0) && (
-                <dl className="flex flex-col gap-0.5 text-sm text-muted-foreground">
+                <dl className="flex flex-col text-xs text-muted-foreground">
                   <div className="flex justify-between">
                     <dt>Productos</dt>
                     <dd className="tabular-nums">{formatCOP(itemsTotal)}</dd>
@@ -540,12 +587,15 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                 <span className="font-heading text-lg">Total</span>
                 <span className="font-heading text-3xl font-semibold text-primary tabular-nums">{formatCOP(total)}</span>
               </div>
-              <Button type="button" disabled={!cart.length || cashShort || mixedInvalid || deliveryInvalid || pending} onClick={checkout} className="press-3d h-14 rounded-2xl text-lg">
-                {pending ? "Cobrando…" : `Cobrar ${formatCOP(total)}`}
-              </Button>
-              <Button type="button" variant="outline" disabled={!cart.length || pending} onClick={() => setConsuming(true)} className="h-11 rounded-2xl lg:h-9 lg:text-sm">
-                <HandCoins aria-hidden /> Lo saco yo (anotar a mi cuenta)
-              </Button>
+              {deliveryInvalid && <p className="text-xs text-destructive">Completa el cliente y la dirección del domicilio.</p>}
+              <div className="flex gap-2">
+                <Button type="button" disabled={!cart.length || cashShort || mixedInvalid || deliveryInvalid || pending} onClick={checkout} className="press-3d h-12 flex-1 rounded-2xl text-base">
+                  {pending ? "Cobrando…" : `Cobrar ${formatCOP(total)}`}
+                </Button>
+                <Button type="button" variant="outline" disabled={!cart.length || pending} onClick={() => setConsuming(true)} className="h-12 rounded-2xl px-3 text-xs" title="Lo saco yo (anotar a mi cuenta)">
+                  <HandCoins aria-hidden /> Lo saco yo
+                </Button>
+              </div>
             </div>
           </div>
           {consumed > 0 && (
@@ -590,96 +640,6 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
             }}
           />
         )}
-      </Modal>
-
-      <Modal open={editing === "delivery"} onClose={() => setEditing(null)} title="Datos del domicilio">
-        <div className="flex flex-col gap-4">
-          <fieldset className="grid grid-cols-2 gap-2">
-            <legend className="sr-only">Datos del domicilio</legend>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="del-customer">Cliente *</Label>
-              <Input id="del-customer" value={delivery.customer} onChange={(e) => setDel("customer")(e.target.value)} autoComplete="off" className="h-11" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="del-phone">Teléfono</Label>
-              <Input id="del-phone" type="tel" inputMode="tel" value={delivery.phone} onChange={(e) => setDel("phone")(e.target.value)} className="h-11" />
-            </div>
-            <div className="col-span-2 flex flex-col gap-1">
-              <Label htmlFor="del-address">Dirección *</Label>
-              <Input id="del-address" value={delivery.address} onChange={(e) => setDel("address")(e.target.value)} autoComplete="off" className="h-11" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="del-fee">Valor domicilio</Label>
-              <MoneyInput id="del-fee" value={delivery.fee} onValueChange={setDel("fee")} className="h-11" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="del-notes">Notas</Label>
-              <Input id="del-notes" value={delivery.notes} onChange={(e) => setDel("notes")(e.target.value)} placeholder="Torre 2, apto 301" className="h-11" />
-            </div>
-          </fieldset>
-          <div className="flex justify-between gap-2">
-            <Button type="button" variant="outline" className="h-11 rounded-xl" onClick={() => toggleOption("delivery", false)}>
-              Quitar domicilio
-            </Button>
-            <Button type="button" disabled={deliveryInvalid} className="h-11 rounded-xl" onClick={() => setEditing(null)}>
-              Listo
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal open={editing === "container"} onClose={() => setEditing(null)} title="Porta / envase">
-        <div className="flex flex-col gap-4">
-          <fieldset className="grid grid-cols-[auto_1fr] items-end gap-2">
-            <legend className="sr-only">Porta / envase</legend>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="container-qty">Cantidad</Label>
-              <div className="flex h-11 items-center rounded-full border-2 border-border bg-card">
-                <button
-                  type="button"
-                  aria-label="Un porta menos"
-                  onClick={() => setContainerQty((q) => Math.max(1, q - 1))}
-                  className="grid size-9 place-items-center rounded-full text-primary active:bg-muted"
-                >
-                  <Minus className="size-4" />
-                </button>
-                <input
-                  id="container-qty"
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  max={99}
-                  value={containerQty}
-                  onChange={(e) => setContainerQty(Math.min(99, Math.max(1, Math.trunc(Number(e.target.value)) || 1)))}
-                  className="w-8 [appearance:textfield] bg-transparent text-center font-heading tabular-nums outline-none [&::-webkit-inner-spin-button]:appearance-none"
-                />
-                <button
-                  type="button"
-                  aria-label="Un porta más"
-                  onClick={() => setContainerQty((q) => Math.min(99, q + 1))}
-                  className="grid size-9 place-items-center rounded-full text-primary active:bg-muted"
-                >
-                  <Plus className="size-4" />
-                </button>
-              </div>
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="container-fee">Valor de cada porta</Label>
-              <MoneyInput id="container-fee" value={containerFeeInput} onValueChange={setContainerFeeInput} className="h-11" />
-            </div>
-          </fieldset>
-          <p className="text-sm text-muted-foreground">
-            Total portas: <strong className="font-heading text-foreground">{formatCOP(containerFee)}</strong>
-          </p>
-          <div className="flex justify-between gap-2">
-            <Button type="button" variant="outline" className="h-11 rounded-xl" onClick={() => toggleOption("container", false)}>
-              Quitar porta
-            </Button>
-            <Button type="button" className="h-11 rounded-xl" onClick={() => setEditing(null)}>
-              Listo
-            </Button>
-          </div>
-        </div>
       </Modal>
 
       <Modal open={consuming} onClose={() => setConsuming(false)} title="Anotar a mi cuenta">

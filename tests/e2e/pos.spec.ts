@@ -159,20 +159,17 @@ test("pago mixto + domicilio + cierre que no cuadra exige nota", async ({ page }
   const cliente = `Laura Gómez ${Date.now()}`; // único: la base de pruebas guarda domicilios de corridas anteriores
   await carrito.getByLabel("Es domicilio").check();
   await expect(carrito.getByRole("button", { name: /Cobrar/ })).toBeDisabled(); // faltan cliente y dirección
-  const domicilio = page.getByRole("dialog", { name: "Datos del domicilio" }); // marcar abre la ventana con los campos
+  const domicilio = carrito.getByRole("group", { name: "Datos del domicilio" }); // marcar muestra los campos debajo
   await expect(domicilio.getByLabel("Cliente *")).toBeFocused();
   await domicilio.getByLabel("Cliente *").fill(cliente);
   await domicilio.getByLabel("Dirección *").fill("Calle 10 # 5-20");
   await domicilio.getByLabel("Teléfono").fill("3001234567");
   await domicilio.getByLabel("Valor domicilio").fill("3000");
-  await domicilio.getByRole("button", { name: "Listo" }).click();
-  await expect(carrito.getByText(new RegExp(`${cliente} · \\$\\s?3\\.000`))).toBeVisible();
   await carrito.getByLabel("Lleva porta").check();
-  const porta = page.getByRole("dialog", { name: "Porta / envase" });
+  const porta = carrito.getByRole("group", { name: "Porta / envase" });
   await porta.getByLabel("Cantidad").fill("2");
   await porta.getByLabel("Valor de cada porta").fill("500");
-  await porta.getByRole("button", { name: "Listo" }).click();
-  await expect(carrito.getByText(/^2 · \$\s?1\.000$/)).toBeVisible();
+  await expect(porta.getByText(/= \$\s?1\.000/)).toBeVisible();
   await carrito.getByRole("radio", { name: "Transferencia" }).click();
   await carrito.getByRole("button", { name: /Cobrar \$\s?12\.000/ }).click();
   ticket = page.getByRole("dialog", { name: "Venta registrada" });
