@@ -164,13 +164,14 @@ test("pago mixto + domicilio + cierre que no cuadra exige nota", async ({ page }
   await carrito.getByLabel("Teléfono").fill("3001234567");
   await carrito.getByLabel("Valor domicilio").fill("3000");
   await carrito.getByLabel("Lleva porta / envase").check();
-  await carrito.getByLabel("Valor porta / envase").fill("1000");
+  await carrito.getByLabel("Cantidad").fill("2");
+  await carrito.getByLabel("Valor de cada porta").fill("500");
   await carrito.getByRole("radio", { name: "Transferencia" }).click();
   await carrito.getByRole("button", { name: /Cobrar \$\s?12\.000/ }).click();
   ticket = page.getByRole("dialog", { name: "Venta registrada" });
   await expect(ticket.locator("#ticket")).toContainText(cliente);
   await expect(ticket.locator("#ticket")).toContainText(/Domicilio\s*\$\s?3\.000/);
-  await expect(ticket.locator("#ticket")).toContainText(/Porta \/ envase\s*\$\s?1\.000/);
+  await expect(ticket.locator("#ticket")).toContainText(/Porta \/ envase x2\s*\$\s?1\.000/);
   await expect(ticket.locator("#ticket")).toContainText(/Productos\s*\$\s?8\.000/);
   await ticket.getByRole("button", { name: "Nueva venta" }).click();
 
@@ -188,6 +189,7 @@ test("pago mixto + domicilio + cierre que no cuadra exige nota", async ({ page }
   await expect(fila(page, "Ventas en efectivo")).toHaveText(/2\.500/);
   await expect(fila(page, "Ventas por transferencia")).toHaveText(/17\.000/);
   await expect(fila(page, "Portas / envases")).toHaveText(/1\.000/);
+  await expect(page.locator("dt", { hasText: /^Portas \/ envases/ })).toContainText("2 envase(s)");
   await expect(fila(page, "Domicilios")).toHaveText(/3\.000/);
   await expect(fila(page, "Total vendido")).toHaveText(/19\.500/);
   await expect(fila(page, "Debes tener en efectivo")).toHaveText(/22\.500/);

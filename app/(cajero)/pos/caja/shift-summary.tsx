@@ -47,7 +47,7 @@ export function ShiftSummary({
         ))}
         <div className="my-1 border-t border-dashed border-border" />
         <Row label="Productos" value={t.salesTotal - deliveryFees - containerFees} />
-        <Row label="Portas / envases" value={containerFees} hint={`${containerCount} venta(s) con porta`} />
+        <Row label="Portas / envases" value={containerFees} hint={`${containerCount} envase(s)`} />
         <Row label="Domicilios" value={deliveryFees} hint={`${deliveryCount} domicilio(s)`} />
         <Row label="Total vendido" value={t.salesTotal} strong hint={`${salesCount} venta(s) · productos + portas + domicilios`} />
       </dl>

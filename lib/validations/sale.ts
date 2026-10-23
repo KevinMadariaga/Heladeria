@@ -23,7 +23,8 @@ export const saleInputSchema = z.object({
   paymentMethod: z.enum(ACTIVE_PAYMENT_METHODS),
   cashReceived: money.optional(),
   transferAmount: money.optional(), // solo pago mixto
-  containerFee: money.optional(), // porta / envase
+  containerFee: money.optional(), // porta / envase (valor total)
+  containerQty: z.coerce.number().int().min(1).max(99).optional(), // cuántos portas
   delivery: z
     .object({
       customer: z.string().trim().min(2, "Escribe el nombre del cliente").max(80),

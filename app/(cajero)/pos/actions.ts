@@ -37,6 +37,7 @@ export async function submitSale(raw: unknown) {
         cashReceived: s.cashReceived ?? undefined,
         change: s.change ?? undefined,
         containerFee: s.containerFee ?? 0,
+        containerQty: s.containerQty ?? 1,
         payments: (s.payments ?? []).map((p) => ({ method: p.method, amount: p.amount })),
         delivery: s.delivery
           ? { customer: s.delivery.customer, phone: s.delivery.phone ?? undefined, address: s.delivery.address, notes: s.delivery.notes ?? undefined, fee: s.delivery.fee ?? 0 }

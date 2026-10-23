@@ -116,6 +116,7 @@ export default async function CajaPage() {
                 <span className="min-w-0 flex-1 truncate text-sm">{s.items.map((i) => `${i.qty}× ${i.name}`).join(", ")}</span>
                 <span className="text-sm">
                   {s.delivery && <span className="mr-1 rounded-full bg-fresa-300 px-2 py-0.5 text-xs">Domicilio</span>}
+                  {(s.containerFee ?? 0) > 0 && <span className="mr-1 rounded-full bg-lila-100 px-2 py-0.5 text-xs">Porta x{s.containerQty ?? 1}</span>}
                   {PAYMENT_LABELS[s.paymentMethod]}
                   {s.paymentMethod === "mixed" && s.payments && (
                     <span className="text-muted-foreground"> ({s.payments.map((p) => `${PAYMENT_LABELS[p.method as keyof typeof PAYMENT_LABELS]} ${formatCOP(p.amount)}`).join(" + ")})</span>

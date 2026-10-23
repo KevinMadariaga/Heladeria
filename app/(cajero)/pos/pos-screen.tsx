@@ -165,6 +165,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
   const [transferAmount, setTransferAmount] = useState("");
   const [containerFeeInput, setContainerFeeInput] = useState("");
   const [hasContainer, setHasContainer] = useState(false);
+  const [containerQty, setContainerQty] = useState(1);
   const [isDelivery, setIsDelivery] = useState(false);
   const [delivery, setDelivery] = useState({ customer: "", phone: "", address: "", notes: "", fee: "" });
   const setDel = (k: keyof typeof delivery) => (v: string) => setDelivery((d) => ({ ...d, [k]: v }));
@@ -194,7 +195,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
 
   const itemsTotal = cart.reduce((s, l) => s + l.unitPrice * l.qty, 0);
   const fee = isDelivery ? Number(delivery.fee || 0) : 0;
-  const containerFee = hasContainer ? Number(containerFeeInput || 0) : 0;
+  const containerFee = hasContainer ? containerQty * Number(containerFeeInput || 0) : 0;
   const total = itemsTotal + fee + containerFee;
   const units = cart.reduce((s, l) => s + l.qty, 0);
   const transfer = Number(transferAmount || 0);
@@ -235,6 +236,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
         cashReceived: takesCash && cashReceived !== "" ? received : undefined,
         transferAmount: method === "mixed" ? transfer : undefined,
         containerFee: containerFee || undefined,
+        containerQty: containerFee ? containerQty : undefined,
         delivery: isDelivery
           ? {
               customer: delivery.customer,
@@ -253,6 +255,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
       setMethod("cash");
       setContainerFeeInput("");
       setHasContainer(false);
+      setContainerQty(1);
       setIsDelivery(false);
       setDelivery({ customer: "", phone: "", address: "", notes: "", fee: "" });
     });
@@ -433,9 +436,24 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                 <input type="checkbox" checked={hasContainer} onChange={(e) => setHasContainer(e.target.checked)} className="size-5 accent-primary" />
               </label>
               {hasContainer && (
-                <div className="flex flex-col gap-1">
-                  <Label htmlFor="container-fee">Valor porta / envase</Label>
-                  <MoneyInput id="container-fee" value={containerFeeInput} onValueChange={setContainerFeeInput} className="h-11" />
+                <div className="grid grid-cols-[6rem_1fr] gap-2">
+                  <div className="flex flex-col gap-1">
+                    <Label htmlFor="container-qty">Cantidad</Label>
+                    <Input
+                      id="container-qty"
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      max={99}
+                      value={containerQty}
+                      onChange={(e) => setContainerQty(Math.min(99, Math.max(1, Math.trunc(Number(e.target.value)) || 1)))}
+                      className="h-11"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label htmlFor="container-fee">Valor de cada porta</Label>
+                    <MoneyInput id="container-fee" value={containerFeeInput} onValueChange={setContainerFeeInput} className="h-11" />
+                  </div>
                 </div>
               )}
             </div>
@@ -448,7 +466,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                 </div>
                 {containerFee > 0 && (
                   <div className="flex justify-between">
-                    <dt>Porta / envase</dt>
+                    <dt>Porta / envase{containerQty > 1 && ` x${containerQty}`}</dt>
                     <dd className="tabular-nums">{formatCOP(containerFee)}</dd>
                   </div>
                 )}

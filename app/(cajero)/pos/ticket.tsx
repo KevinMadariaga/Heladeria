@@ -41,7 +41,7 @@ export function Ticket({ sale }: { sale: TicketSale }) {
       )}
       {sale.containerFee > 0 && (
         <div className="flex justify-between">
-          <span>Porta / envase</span>
+          <span>Porta / envase{sale.containerQty > 1 && ` x${sale.containerQty}`}</span>
           <span>{formatCOP(sale.containerFee)}</span>
         </div>
       )}
