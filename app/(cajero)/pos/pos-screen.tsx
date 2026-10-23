@@ -280,7 +280,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
   for (const l of cart) inCart.set(l.product.id, (inCart.get(l.product.id) ?? 0) + l.qty);
 
   return (
-    <div className="grid gap-4 pb-20 sm:gap-6 lg:grid-cols-[1fr_400px] lg:pb-0">
+    <div className="grid gap-4 pb-20 sm:gap-6 lg:grid-cols-[1fr_440px] lg:pb-0 xl:grid-cols-[1fr_480px]">
       <section aria-label="Productos" className="flex min-w-0 flex-col gap-3">
         <div className="relative">
           <Search aria-hidden className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" />
@@ -329,7 +329,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
         ref={cartRef}
         id="carrito"
         aria-label="Carrito"
-        className="sticker order-first flex scroll-mt-4 flex-col self-start overflow-hidden bg-card lg:sticky lg:top-20 lg:order-none"
+        className="sticker order-first flex scroll-mt-4 flex-col self-start overflow-hidden bg-card lg:sticky lg:top-20 lg:order-none lg:max-h-[calc(100dvh-6rem)]"
       >
         <div className="flex items-center gap-2 bg-lila-100 px-4 py-3">
           <ShoppingBag aria-hidden className="text-primary" />
@@ -342,7 +342,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
           )}
         </div>
 
-        <div className="flex flex-col gap-4 p-4">
+        <div className="flex flex-col gap-4 p-4 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain">
           {cart.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-3 text-center text-muted-foreground lg:py-8">
               <span aria-hidden className="text-4xl">🍦</span>
@@ -548,12 +548,15 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                 {error}
               </p>
             )}
-            <Button type="button" disabled={!cart.length || cashShort || mixedInvalid || deliveryInvalid || pending} onClick={checkout} className="press-3d h-14 rounded-2xl text-lg">
-              {pending ? "Cobrando…" : `Cobrar ${formatCOP(total)}`}
-            </Button>
-            <Button type="button" variant="outline" disabled={!cart.length || pending} onClick={() => setConsuming(true)} className="h-12 rounded-2xl">
-              <HandCoins aria-hidden /> Lo saco yo (anotar a mi cuenta)
-            </Button>
+            {/* En escritorio el cobro queda siempre a la vista aunque el pedido sea largo */}
+            <div className="flex flex-col gap-4 bg-card lg:sticky lg:-bottom-4 lg:-mx-4 lg:-mb-4 lg:px-4 lg:pt-2 lg:pb-4">
+              <Button type="button" disabled={!cart.length || cashShort || mixedInvalid || deliveryInvalid || pending} onClick={checkout} className="press-3d h-14 rounded-2xl text-lg">
+                {pending ? "Cobrando…" : `Cobrar ${formatCOP(total)}`}
+              </Button>
+              <Button type="button" variant="outline" disabled={!cart.length || pending} onClick={() => setConsuming(true)} className="h-12 rounded-2xl">
+                <HandCoins aria-hidden /> Lo saco yo (anotar a mi cuenta)
+              </Button>
+            </div>
           </div>
           {consumed > 0 && (
             <p role="status" className="text-sm text-muted-foreground">
