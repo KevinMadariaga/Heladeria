@@ -15,8 +15,8 @@ export default async function CajeroLayout({ children }: { children: React.React
   const admin = session.user.role === "admin" ? [{ href: "/admin", label: "Admin" }] : [];
   return (
     <>
-      <AppHeader links={[...links, ...admin]} userName={session.user.name} />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-3 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:px-4 md:py-6">{children}</main>
+      <AppHeader links={[...links, ...admin]} userName={session.user.name} wide />
+      <main className="w-full flex-1 px-3 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:px-4 md:py-6 lg:px-6">{children}</main>
     </>
   );
 }

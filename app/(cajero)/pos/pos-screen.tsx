@@ -280,7 +280,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
   for (const l of cart) inCart.set(l.product.id, (inCart.get(l.product.id) ?? 0) + l.qty);
 
   return (
-    <div className="grid gap-4 pb-20 sm:gap-6 lg:grid-cols-[1fr_440px] lg:pb-0 xl:grid-cols-[1fr_480px]">
+    <div className="grid gap-4 pb-20 sm:gap-6 lg:grid-cols-[1fr_460px] lg:pb-0 xl:grid-cols-[1fr_520px] 2xl:grid-cols-[1fr_580px]">
       <section aria-label="Productos" className="flex min-w-0 flex-col gap-3">
         <div className="relative">
           <Search aria-hidden className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" />
@@ -317,7 +317,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
         {visible.length === 0 ? (
           <p className="py-10 text-center text-muted-foreground">No hay productos para mostrar.</p>
         ) : (
-          <div className="grid grid-cols-3 gap-2 pt-1 sm:gap-3 xl:grid-cols-4">
+          <div className="grid grid-cols-3 gap-2 pt-1 sm:gap-3 xl:grid-cols-4 2xl:grid-cols-5">
             {visible.map((p) => (
               <ProductCard key={p.id} product={p} color={colorOf.get(p.categoryId)} inCart={inCart.get(p.id) ?? 0} onPick={() => pick(p)} />
             ))}
