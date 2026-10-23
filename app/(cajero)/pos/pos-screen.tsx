@@ -288,7 +288,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
   for (const l of cart) inCart.set(l.product.id, (inCart.get(l.product.id) ?? 0) + l.qty);
 
   return (
-    <div className="grid gap-4 pb-20 sm:gap-6 lg:grid-cols-[11fr_9fr] lg:pb-0">
+    <div className="grid gap-4 pb-20 sm:gap-6 lg:grid-cols-[11fr_9fr] lg:pb-0 xl:grid-cols-[9fr_11fr]">
       <section aria-label="Productos" className="flex min-w-0 flex-col gap-3">
         <div className="relative">
           <Search aria-hidden className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" />
@@ -339,7 +339,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
         aria-label="Carrito"
         className="sticker order-first flex scroll-mt-4 flex-col self-start overflow-hidden bg-card lg:sticky lg:top-22 lg:order-none lg:h-[calc(100dvh-6rem)]"
       >
-        <div className="flex items-center gap-2 bg-lila-100 px-4 py-3">
+        <div className="flex min-h-15 items-center gap-2 bg-lila-100 px-4 py-3">
           <ShoppingBag aria-hidden className="text-primary" />
           <h2 className="text-xl font-semibold">Pedido</h2>
           {units > 0 && <span className="rounded-full bg-primary px-2 py-0.5 font-heading text-sm text-primary-foreground">{units}</span>}
@@ -350,14 +350,15 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
           )}
         </div>
 
-        <div className="flex flex-col gap-4 p-4 lg:min-h-0 lg:flex-1">
+        {/* xl: dos columnas dentro del pedido — productos a la izquierda, cobro a la derecha — para que todo quepa sin scroll */}
+        <div className="flex flex-col gap-4 p-4 lg:min-h-0 lg:flex-1 xl:grid xl:grid-cols-2 xl:grid-rows-[minmax(0,1fr)_auto] xl:gap-x-4 xl:gap-y-2">
           {cart.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-3 text-center text-muted-foreground lg:min-h-[8rem] lg:flex-1 lg:justify-center">
               <span aria-hidden className="text-4xl">🍦</span>
               <p>Toca un producto para agregarlo al pedido.</p>
             </div>
           ) : (
-            <ul className="-mx-1 flex max-h-[42dvh] flex-col gap-2 lg:max-h-none lg:min-h-[8rem] lg:flex-1 overflow-y-auto overscroll-contain px-1">
+            <ul className="-mx-1 flex max-h-[42dvh] flex-col gap-2 lg:max-h-none lg:min-h-[8rem] lg:flex-1 xl:min-h-0 overflow-y-auto overscroll-contain px-1">
               <AnimatePresence initial={false}>
                 {cart.map((l) => (
                   <motion.li
@@ -407,9 +408,9 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
           {/* Celular: con el pedido vacío solo se ve el aviso, para que los productos queden cerca */}
           <div className={cn("contents", !cart.length && "max-lg:hidden")}>
             {/* Escritorio: opciones y pago toman su alto; la lista de arriba usa lo que sobra */}
-            <div className="flex flex-col gap-3 lg:-mx-1 lg:min-h-[9.5rem] lg:overflow-y-auto lg:overscroll-contain lg:px-1">
-              <div className="flex flex-col gap-2 border-t-2 border-dashed border-border pt-3">
-                <div role="radiogroup" aria-label="Método de pago" className="grid grid-cols-3 gap-2">
+            <div className="flex flex-col gap-3 lg:-mx-1 lg:min-h-[9.5rem] xl:gap-2 lg:overflow-y-auto xl:min-h-0 lg:overscroll-contain lg:px-1">
+              <div className="flex flex-col gap-2 border-t-2 border-dashed border-border pt-3 xl:border-t-0 xl:pt-0">
+                <div role="radiogroup" aria-label="Método de pago" className="grid grid-cols-3 gap-2 xl:order-3">
                   {METHODS.map((m) => {
                     const Icon = METHOD_ICON[m];
                     const on = method === m;
@@ -421,7 +422,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                         aria-checked={on}
                         onClick={() => setMethod(m)}
                         className={cn(
-                          "flex h-10 items-center justify-center gap-1.5 rounded-xl border-2 font-heading text-xs transition-[background-color,color,border-color,transform] duration-150 active:scale-[0.97] sm:text-sm",
+                          "flex h-10 items-center justify-center gap-1.5 rounded-xl border-2 font-heading text-xs transition-[background-color,color,border-color,transform] duration-150 active:scale-[0.97] sm:text-sm xl:gap-1 xl:text-xs 2xl:text-sm",
                           on ? "border-primary bg-primary text-primary-foreground shadow-[0_3px_0_var(--press-shadow)]" : "border-border bg-card text-foreground",
                         )}
                       >
@@ -431,9 +432,9 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                     );
                   })}
                 </div>
-                <div className="flex flex-col gap-2 sm:flex-row">
+                <div className="flex flex-col gap-2 sm:flex-row xl:contents">
                   {takesCash && (
-                    <div className="flex min-w-0 flex-1 flex-col gap-1.5 rounded-2xl bg-lila-100/70 p-2.5">
+                    <div className="flex min-w-0 flex-1 flex-col gap-1.5 rounded-2xl bg-lila-100/70 p-2.5 xl:order-4">
                       {method === "mixed" && (
                         <>
                           <div className="flex items-baseline justify-between gap-2">
@@ -459,9 +460,9 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                           Efectivo recibido (vacío = exacto)
                         </label>
                         <MoneyInput id="cashReceived" value={cashReceived} onValueChange={setCashReceived} className="h-10 bg-card text-base" aria-invalid={cashShort} />
-                        <p aria-live="polite" className={cn("flex items-baseline gap-1.5 font-heading tabular-nums", cashShort ? "text-destructive" : "text-primary")}>
+                        <p aria-live="polite" className={cn("flex flex-wrap items-baseline gap-x-1.5 font-heading tabular-nums", cashShort ? "text-destructive" : "text-primary")}>
                           <span className="text-sm font-medium text-muted-foreground">{cashShort ? "Faltan:" : "Cambio:"}</span>{" "}
-                          <span className="truncate text-2xl leading-none font-semibold sm:text-3xl">
+                          <span className="text-2xl leading-none font-semibold sm:text-3xl lg:text-2xl 2xl:text-3xl">
                             {formatCOP(cashShort ? cashPart - received : cashReceived === "" ? 0 : received - cashPart)}
                           </span>
                         </p>
@@ -476,13 +477,13 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                     </div>
                   )}
                   {/* Domicilio y porta al lado del efectivo (debajo en celular) */}
-                  <div className={cn("grid grid-cols-2 gap-2", takesCash && "sm:flex sm:w-40 sm:shrink-0 sm:flex-col")}>
-                    <label className={cn(TOGGLE, takesCash && "sm:h-auto sm:flex-1")}>
+                  <div className={cn("grid grid-cols-2 gap-2 xl:order-1", takesCash && "sm:flex sm:w-40 sm:shrink-0 sm:flex-col xl:grid xl:w-auto")}>
+                    <label className={cn(TOGGLE, takesCash && "sm:h-auto sm:flex-1 xl:h-10")}>
                       <Bike aria-hidden className="size-4 shrink-0 text-primary" />
                       <span className="flex-1">Es domicilio</span>
                       <input type="checkbox" checked={isDelivery} onChange={(e) => toggleOption("delivery", e.target.checked)} className="size-4 shrink-0 accent-primary" />
                     </label>
-                    <label className={cn(TOGGLE, takesCash && "sm:h-auto sm:flex-1")}>
+                    <label className={cn(TOGGLE, takesCash && "sm:h-auto sm:flex-1 xl:h-10")}>
                       <CupSoda aria-hidden className="size-4 shrink-0 text-primary" />
                       <span className="flex-1">Lleva porta</span>
                       <input type="checkbox" checked={hasContainer} onChange={(e) => toggleOption("container", e.target.checked)} className="size-4 shrink-0 accent-primary" />
@@ -490,7 +491,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                   </div>
                 </div>
                 {isDelivery && (
-                  <fieldset id="delivery-fields" className="grid grid-cols-2 gap-2 rounded-2xl bg-lila-100/70 p-2.5 sm:grid-cols-3">
+                  <fieldset id="delivery-fields" className="grid grid-cols-2 gap-2 xl:order-2 rounded-2xl bg-lila-100/70 p-2.5 sm:grid-cols-3 xl:grid-cols-2">
                     <legend className="sr-only">Datos del domicilio</legend>
                     <div className="flex flex-col gap-1">
                       <Label htmlFor="del-customer" className="text-xs">Cliente *</Label>
@@ -504,7 +505,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                       <Label htmlFor="del-fee" className="text-xs">Valor domicilio</Label>
                       <MoneyInput id="del-fee" value={delivery.fee} onValueChange={setDel("fee")} className="h-9 bg-card" />
                     </div>
-                    <div className="flex flex-col gap-1 sm:order-last">
+                    <div className="flex flex-col gap-1 sm:order-last xl:order-none">
                       <Label htmlFor="del-notes" className="text-xs">Notas</Label>
                       <Input id="del-notes" value={delivery.notes} onChange={(e) => setDel("notes")(e.target.value)} placeholder="Torre 2, apto 301" className="h-9 bg-card" />
                     </div>
@@ -515,7 +516,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                   </fieldset>
                 )}
                 {hasContainer && (
-                  <fieldset id="container-fields" className="grid grid-cols-[auto_1fr_auto] items-end gap-2 rounded-2xl bg-lila-100/70 p-2.5">
+                  <fieldset id="container-fields" className="grid grid-cols-[auto_1fr_auto] xl:order-2 items-end gap-2 rounded-2xl bg-lila-100/70 p-2.5">
                     <legend className="sr-only">Porta / envase</legend>
                     <div className="flex flex-col gap-1">
                       <Label htmlFor="container-qty" className="text-xs">Cantidad</Label>
@@ -564,9 +565,9 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
               )}
             </div>
             {/* Total y cobro siempre a la vista */}
-            <div className="flex shrink-0 flex-col gap-2 lg:border-t-2 lg:border-dashed lg:border-border lg:pt-2.5">
+            <div className="flex shrink-0 flex-col gap-2 lg:border-t-2 lg:border-dashed lg:border-border lg:pt-2.5 xl:col-span-2 xl:grid xl:grid-cols-2 xl:items-end xl:gap-x-4">
               {(fee > 0 || containerFee > 0) && (
-                <dl className="flex flex-col text-xs text-muted-foreground">
+                <dl className="flex flex-col text-xs text-muted-foreground xl:col-start-1 xl:row-start-1">
                   <div className="flex justify-between">
                     <dt>Productos</dt>
                     <dd className="tabular-nums">{formatCOP(itemsTotal)}</dd>
@@ -590,8 +591,8 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                 <span className="font-heading text-lg">Total</span>
                 <span className="font-heading text-3xl font-semibold text-primary tabular-nums">{formatCOP(total)}</span>
               </div>
-              {deliveryInvalid && <p className="text-xs text-destructive">Completa el cliente y la dirección del domicilio.</p>}
-              <div className="flex gap-2">
+              {deliveryInvalid && <p className="text-xs text-destructive xl:col-start-2">Completa el cliente y la dirección del domicilio.</p>}
+              <div className="flex gap-2 xl:col-start-2 xl:row-start-1">
                 <Button type="button" disabled={!cart.length || cashShort || mixedInvalid || deliveryInvalid || pending} onClick={checkout} className="press-3d h-12 flex-1 rounded-2xl text-base">
                   {pending ? "Cobrando…" : `Cobrar ${formatCOP(total)}`}
                 </Button>
@@ -602,7 +603,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
             </div>
           </div>
           {consumed > 0 && (
-            <p role="status" className="text-sm text-muted-foreground">
+            <p role="status" className="text-sm text-muted-foreground xl:col-span-2">
               Consumo anotado a tu cuenta: {formatCOP(consumed)}. Lo ves en Caja.
             </p>
           )}
