@@ -163,7 +163,8 @@ test("pago mixto + domicilio + cierre que no cuadra exige nota", async ({ page }
   await carrito.getByLabel("Dirección *").fill("Calle 10 # 5-20");
   await carrito.getByLabel("Teléfono").fill("3001234567");
   await carrito.getByLabel("Valor domicilio").fill("3000");
-  await carrito.getByLabel("Porta / envase").fill("1000");
+  await carrito.getByLabel("Lleva porta / envase").check();
+  await carrito.getByLabel("Valor porta / envase").fill("1000");
   await carrito.getByRole("radio", { name: "Transferencia" }).click();
   await carrito.getByRole("button", { name: /Cobrar \$\s?12\.000/ }).click();
   ticket = page.getByRole("dialog", { name: "Venta registrada" });
