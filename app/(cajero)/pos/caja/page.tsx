@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { Types } from "mongoose";
+import { ReceiptText } from "lucide-react";
 import { requireRole } from "@/lib/auth-guard";
 import { closeShiftTotals } from "@/lib/cash";
 import { formatCOP, formatDateTime, PAYMENT_LABELS } from "@/lib/money";
@@ -91,20 +92,27 @@ export default async function CajaPage() {
         <p className="text-sm">
           Base inicial: <strong className="font-heading">{formatCOP(shift.openingCash)}</strong>
         </p>
-        {/* En pantallas anchas: resumen a la izquierda, consumos y cierre a la derecha */}
-        <div className="grid gap-6 2xl:grid-cols-2">
-          <ShiftSummary
-            openingCash={shift.openingCash}
-            totalsByMethod={totalsByMethod}
-            salesCount={salesCount}
-            deliveryFees={deliveryFees}
-            deliveryCount={deliveryCount}
-            containerFees={containerFees}
-            containerCount={containerCount}
-          />
-          <div className="flex flex-col gap-4">
+        {/* Secciones separadas por líneas: resumen | lo que sacaste | cerrar caja (en pantallas anchas, resumen a la izquierda) */}
+        <div className="grid gap-5 border-t-2 border-dashed border-border pt-5 2xl:grid-cols-2 2xl:gap-0 2xl:divide-x-2 2xl:divide-dashed 2xl:divide-border">
+          <div className="flex flex-col gap-3 2xl:pr-6">
+            <h2 className="flex items-center gap-2 font-heading text-lg font-semibold">
+              <ReceiptText aria-hidden className="size-5 text-primary" /> Resumen del turno
+            </h2>
+            <ShiftSummary
+              openingCash={shift.openingCash}
+              totalsByMethod={totalsByMethod}
+              salesCount={salesCount}
+              deliveryFees={deliveryFees}
+              deliveryCount={deliveryCount}
+              containerFees={containerFees}
+              containerCount={containerCount}
+            />
+          </div>
+          <div className="flex flex-col gap-5 border-t-2 border-dashed border-border pt-5 2xl:border-t-0 2xl:pt-0 2xl:pl-6">
             <ConsumptionList rows={consumptions} canDelete />
-            <CloseShiftForm expectedCash={expectedCash} expectedTransfer={expectedTransfer} />
+            <div className="border-t-2 border-dashed border-border pt-5">
+              <CloseShiftForm expectedCash={expectedCash} expectedTransfer={expectedTransfer} />
+            </div>
           </div>
         </div>
       </section>

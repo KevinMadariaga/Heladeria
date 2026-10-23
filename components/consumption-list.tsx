@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { HandCoins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatCOP } from "@/lib/money";
 import { deleteConsumptionAction } from "@/app/(cajero)/pos/actions";
@@ -23,7 +24,9 @@ export function ConsumptionList({
   return (
     <div className="flex flex-col gap-2 rounded-2xl border-2 border-dashed border-caramelo-400 p-4">
       <div className="flex items-baseline justify-between gap-4">
-        <h2 className="font-heading text-base font-semibold">{title}</h2>
+        <h2 className="flex items-center gap-2 font-heading text-lg font-semibold">
+          <HandCoins aria-hidden className="size-5 text-cafe-600" /> {title}
+        </h2>
         <span className="font-heading text-lg font-semibold tabular-nums">{formatCOP(total)}</span>
       </div>
       <p className="text-xs text-muted-foreground">No entra en la caja: se suma a lo que debes y el administrador lo ve al final del mes.</p>
