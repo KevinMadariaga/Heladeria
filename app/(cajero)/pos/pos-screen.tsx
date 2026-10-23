@@ -436,23 +436,22 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                   {takesCash && (
                     <div className="flex min-w-0 flex-1 flex-col gap-1.5 rounded-2xl bg-lila-100/70 p-2.5 order-4 sm:order-none xl:order-4">
                       {method === "mixed" && (
-                        <>
-                          <div className="flex items-baseline justify-between gap-2">
-                            <label htmlFor="transferAmount" className="font-heading text-xs font-medium">
-                              Valor por transferencia
-                            </label>
-                            <p className="font-heading text-sm tabular-nums">
-                              {mixedInvalid ? (
-                                <span className="text-destructive">Debe ser mayor a $ 0 y menor a {formatCOP(total)}</span>
-                              ) : (
-                                <>
-                                  En efectivo: <strong>{formatCOP(cashPart)}</strong>
-                                </>
-                              )}
-                            </p>
-                          </div>
-                          <MoneyInput id="transferAmount" value={transferAmount} onValueChange={setTransferAmount} className="h-9 bg-card" aria-invalid={mixedInvalid} />
-                        </>
+                        // Mismo formato que el efectivo: casilla angosta y lo que falta en efectivo al lado
+                        <div className="grid grid-cols-[minmax(6rem,9rem)_minmax(0,1fr)] items-center gap-x-3 gap-y-1.5 border-b border-dashed border-border pb-2">
+                          <label htmlFor="transferAmount" className="col-span-2 font-heading text-xs font-medium">
+                            Valor por transferencia
+                          </label>
+                          <MoneyInput id="transferAmount" value={transferAmount} onValueChange={setTransferAmount} className="h-10 bg-card text-base" aria-invalid={mixedInvalid} />
+                          <p className="font-heading text-sm tabular-nums">
+                            {mixedInvalid ? (
+                              <span className="text-destructive">Mayor a $ 0 y menor a {formatCOP(total)}</span>
+                            ) : (
+                              <>
+                                En efectivo: <strong className="text-base">{formatCOP(cashPart)}</strong>
+                              </>
+                            )}
+                          </p>
+                        </div>
                       )}
                       {/* Casilla angosta y el cambio en grande justo al lado */}
                       <div className="grid grid-cols-[minmax(6rem,9rem)_minmax(0,1fr)] items-center gap-x-3 gap-y-1.5">

@@ -94,27 +94,23 @@ export function ChangeMethod({
         })}
       </div>
       {mixing && (
-        <div className="flex flex-col gap-1.5 rounded-xl bg-lila-100/70 p-2.5">
-          <label htmlFor={`mix-${saleId}`} className="font-heading text-xs font-medium">
+        <div className="grid grid-cols-[minmax(6rem,9rem)_minmax(0,1fr)] items-center sm:grid-cols-[minmax(6rem,9rem)_minmax(0,1fr)_auto] gap-x-3 gap-y-1.5 rounded-xl bg-lila-100/70 p-2.5">
+          <label htmlFor={`mix-${saleId}`} className="col-span-full font-heading text-xs font-medium">
             Valor por transferencia
           </label>
-          <div className="flex gap-2">
-            <div className="min-w-0 flex-1">
-              <MoneyInput id={`mix-${saleId}`} value={transfer} onValueChange={setTransfer} className="h-10 bg-card" aria-invalid={transfer !== "" && mixedInvalid} />
-            </div>
-            <Button type="button" disabled={pending || mixedInvalid} className="h-10 rounded-xl" onClick={() => save("mixed", t)}>
-              Guardar
-            </Button>
-          </div>
+          <MoneyInput id={`mix-${saleId}`} value={transfer} onValueChange={setTransfer} className="h-10 bg-card text-base" aria-invalid={transfer !== "" && mixedInvalid} />
           <p className="font-heading text-sm tabular-nums">
             {transfer !== "" && mixedInvalid ? (
-              <span className="text-destructive">Debe ser mayor a $ 0 y menor a {formatCOP(total)}</span>
+              <span className="text-destructive">Mayor a $ 0 y menor a {formatCOP(total)}</span>
             ) : (
               <>
-                En efectivo: <strong>{formatCOP(total - t)}</strong>
+                En efectivo: <strong className="text-base">{formatCOP(total - t)}</strong>
               </>
             )}
           </p>
+          <Button type="button" disabled={pending || mixedInvalid} className="col-span-2 h-10 rounded-xl sm:col-span-1" onClick={() => save("mixed", t)}>
+            Guardar
+          </Button>
         </div>
       )}
       <p role="status" aria-live="polite" className={cn("min-h-5 text-sm", error ? "text-destructive" : "text-muted-foreground")}>
