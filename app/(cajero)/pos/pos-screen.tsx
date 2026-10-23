@@ -257,16 +257,21 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
       });
       if (res.error) return setError(res.error);
       setTicket(res.sale!);
-      setCart([]);
-      setCashReceived("");
-      setTransferAmount("");
-      setMethod("cash");
-      setContainerFeeInput("");
-      setHasContainer(false);
-      setContainerQty(1);
-      setIsDelivery(false);
-      setDelivery({ customer: "", phone: "", address: "", notes: "", fee: "" });
+      resetOrder();
     });
+  }
+
+  // Deja el pedido en blanco (productos, pago, domicilio y porta) para el siguiente cliente.
+  function resetOrder() {
+    setCart([]);
+    setCashReceived("");
+    setTransferAmount("");
+    setMethod("cash");
+    setContainerFeeInput("");
+    setHasContainer(false);
+    setContainerQty(1);
+    setIsDelivery(false);
+    setDelivery({ customer: "", phone: "", address: "", notes: "", fee: "" });
   }
 
   function consume() {
@@ -279,7 +284,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
       setConsuming(false);
       if (res.error) return setError(res.error);
       setConsumed(itemsTotal);
-      setCart([]);
+      resetOrder();
       setConsumeNote("");
     });
   }
@@ -344,7 +349,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
           <h2 className="text-xl font-semibold">Pedido</h2>
           {units > 0 && <span className="rounded-full bg-primary px-2 py-0.5 font-heading text-sm text-primary-foreground">{units}</span>}
           {cart.length > 0 && (
-            <Button type="button" variant="ghost" className="ml-auto h-9 rounded-xl text-muted-foreground" onClick={() => setCart([])}>
+            <Button type="button" variant="ghost" className="ml-auto h-9 rounded-xl text-muted-foreground" onClick={resetOrder}>
               <Trash2 /> Vaciar
             </Button>
           )}
