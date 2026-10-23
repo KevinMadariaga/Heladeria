@@ -533,30 +533,25 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                       <MoneyInput id="transferAmount" value={transferAmount} onValueChange={setTransferAmount} className="h-9 bg-card" aria-invalid={mixedInvalid} />
                     </>
                   )}
-                  {/* Izquierda: lo que entrega el cliente; derecha: el cambio en grande */}
-                  <div className="grid grid-cols-[1fr_auto] items-center gap-3">
-                    <div className="flex min-w-0 flex-col gap-1.5">
-                      <label htmlFor="cashReceived" className="font-heading text-xs font-medium">
-                        Efectivo recibido (vacío = exacto)
-                      </label>
-                      <MoneyInput id="cashReceived" value={cashReceived} onValueChange={setCashReceived} className="h-10 bg-card text-base" aria-invalid={cashShort} />
-                      <div className="flex flex-wrap gap-1.5">
-                        {QUICK_CASH.filter((v) => v >= cashPart).slice(0, 3).map((v) => (
-                          <Button key={v} type="button" variant="outline" className="h-8 rounded-full bg-card px-2.5 text-xs" onClick={() => setCashReceived(String(v))}>
-                            {formatCOP(v)}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                    <p
-                      aria-live="polite"
-                      className={cn("flex min-w-28 flex-col items-end rounded-2xl bg-card px-3 py-2 font-heading tabular-nums", cashShort ? "text-destructive" : "text-primary")}
-                    >
-                      <span className="text-xs font-medium text-muted-foreground">{cashShort ? "Faltan:" : "Cambio:"}</span>{" "}
-                      <span className="text-2xl leading-tight font-semibold sm:text-3xl">
+                  {/* Casilla a media anchura y el cambio en grande justo al lado */}
+                  <div className="grid grid-cols-2 items-center gap-x-3 gap-y-1.5">
+                    <label htmlFor="cashReceived" className="col-span-2 font-heading text-xs font-medium">
+                      Efectivo recibido (vacío = exacto)
+                    </label>
+                    <MoneyInput id="cashReceived" value={cashReceived} onValueChange={setCashReceived} className="h-10 bg-card text-base" aria-invalid={cashShort} />
+                    <p aria-live="polite" className={cn("flex items-baseline gap-1.5 font-heading tabular-nums", cashShort ? "text-destructive" : "text-primary")}>
+                      <span className="text-sm font-medium text-muted-foreground">{cashShort ? "Faltan:" : "Cambio:"}</span>{" "}
+                      <span className="truncate text-2xl leading-none font-semibold sm:text-3xl">
                         {formatCOP(cashShort ? cashPart - received : cashReceived === "" ? 0 : received - cashPart)}
                       </span>
                     </p>
+                    <div className="col-span-2 flex flex-wrap gap-1.5">
+                      {QUICK_CASH.filter((v) => v >= cashPart).slice(0, 3).map((v) => (
+                        <Button key={v} type="button" variant="outline" className="h-8 rounded-full bg-card px-2.5 text-xs" onClick={() => setCashReceived(String(v))}>
+                          {formatCOP(v)}
+                        </Button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
