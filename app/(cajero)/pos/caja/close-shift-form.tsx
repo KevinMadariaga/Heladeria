@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { LockKeyhole } from "lucide-react";
+import { IconBadge } from "@/components/icon-badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/money-input";
@@ -30,7 +31,7 @@ export function CloseShiftForm({ expectedCash, expectedTransfer }: { expectedCas
   return (
     <form action={action} className="flex flex-col gap-4">
       <h2 className="flex items-center gap-2 font-heading text-lg font-semibold">
-        <LockKeyhole aria-hidden className="size-5 text-primary" /> Cerrar caja
+        <IconBadge icon={LockKeyhole} className="bg-fresa-300 text-uva-900" /> Cerrar caja
       </h2>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="countedCash">Efectivo contado (COP)</Label>

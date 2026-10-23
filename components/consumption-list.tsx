@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { HandCoins } from "lucide-react";
+import { IconBadge } from "@/components/icon-badge";
 import { Button } from "@/components/ui/button";
 import { formatCOP } from "@/lib/money";
 import { deleteConsumptionAction } from "@/app/(cajero)/pos/actions";
@@ -25,7 +26,7 @@ export function ConsumptionList({
     <div className="flex flex-col gap-2 rounded-2xl border-2 border-dashed border-caramelo-400 p-4">
       <div className="flex items-baseline justify-between gap-4">
         <h2 className="flex items-center gap-2 font-heading text-lg font-semibold">
-          <HandCoins aria-hidden className="size-5 text-cafe-600" /> {title}
+          <IconBadge icon={HandCoins} className="rotate-6 bg-caramelo-400 text-uva-900" /> {title}
         </h2>
         <span className="font-heading text-lg font-semibold tabular-nums">{formatCOP(total)}</span>
       </div>

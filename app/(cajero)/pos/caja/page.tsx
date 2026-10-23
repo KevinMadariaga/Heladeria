@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { Types } from "mongoose";
-import { ReceiptText } from "lucide-react";
+import { ReceiptText, ShoppingCart, Wallet } from "lucide-react";
+import { IconBadge } from "@/components/icon-badge";
 import { requireRole } from "@/lib/auth-guard";
 import { closeShiftTotals } from "@/lib/cash";
 import { formatCOP, formatDateTime, PAYMENT_LABELS } from "@/lib/money";
@@ -81,8 +82,8 @@ export default async function CajaPage() {
     <div className="grid gap-6 lg:grid-cols-2">
       <section aria-labelledby="turno" className="sticker flex flex-col gap-4 self-start bg-card p-5 xl:p-6">
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
-          <h1 id="turno" className="text-2xl font-semibold">
-            Mi caja
+          <h1 id="turno" className="flex items-center gap-3 text-2xl font-semibold">
+            <IconBadge icon={Wallet} className="size-12 bg-primary [&>svg]:size-6" /> Mi caja
           </h1>
           <p className="text-right">
             <span className="block text-xs text-muted-foreground">Abierta</span>
@@ -96,7 +97,7 @@ export default async function CajaPage() {
         <div className="grid gap-5 border-t-2 border-dashed border-border pt-5 2xl:grid-cols-2 2xl:gap-0 2xl:divide-x-2 2xl:divide-dashed 2xl:divide-border">
           <div className="flex flex-col gap-3 2xl:pr-6">
             <h2 className="flex items-center gap-2 font-heading text-lg font-semibold">
-              <ReceiptText aria-hidden className="size-5 text-primary" /> Resumen del turno
+              <IconBadge icon={ReceiptText} /> Resumen del turno
             </h2>
             <ShiftSummary
               openingCash={shift.openingCash}
@@ -118,8 +119,8 @@ export default async function CajaPage() {
       </section>
 
       <section aria-labelledby="ventas" className="sticker flex flex-col self-start bg-card p-5 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] xl:p-6">
-        <h2 id="ventas" className="mb-3 text-xl font-semibold">
-          Ventas de este turno
+        <h2 id="ventas" className="mb-3 flex items-center gap-2.5 text-xl font-semibold">
+          <IconBadge icon={ShoppingCart} className="rotate-6 bg-fresa-300 text-uva-900" /> Ventas de este turno
         </h2>
         {sales.length === 0 ? (
           <p className="text-muted-foreground">Aún no hay ventas.</p>
