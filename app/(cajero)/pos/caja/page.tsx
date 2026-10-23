@@ -90,7 +90,7 @@ export default async function CajaPage() {
           <h1 id="turno" className="flex items-center gap-3 text-2xl font-semibold">
             <IconBadge icon={Wallet} className="size-12 bg-primary [&>svg]:size-6" /> Mi caja
           </h1>
-          <p className="text-right">
+          <p className="sm:text-right">
             <span className="block text-xs text-muted-foreground">Abierta</span>
             <span className="font-heading text-xl font-semibold tabular-nums">{formatDateTime(shift.openedAt)}</span>
           </p>

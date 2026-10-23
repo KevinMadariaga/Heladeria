@@ -25,7 +25,7 @@ type Line = { key: string; product: ClientProduct; variant?: string; addons: Opt
 const METHODS = ACTIVE_PAYMENT_METHODS;
 const QUICK_CASH = [10000, 20000, 50000, 100000];
 const TOGGLE =
-  "flex h-10 cursor-pointer items-center gap-2 rounded-xl border-2 border-border bg-card px-3 font-heading text-sm transition-[background-color,border-color,transform] duration-150 active:scale-[0.97] has-checked:border-primary has-checked:bg-lila-100 has-focus-visible:ring-4 has-focus-visible:ring-ring";
+  "flex h-10 cursor-pointer items-center gap-1.5 rounded-xl border-2 border-border bg-card px-2.5 font-heading text-[13px] whitespace-nowrap sm:gap-2 sm:px-3 sm:text-sm transition-[background-color,border-color,transform] duration-150 active:scale-[0.97] has-checked:border-primary has-checked:bg-lila-100 has-focus-visible:ring-4 has-focus-visible:ring-ring";
 
 function ProductCard({ product, color, inCart, onPick }: { product: ClientProduct; color?: string; inCart: number; onPick: () => void }) {
   const [scope, animate] = useAnimate();
@@ -410,7 +410,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
             {/* Escritorio: opciones y pago toman su alto; la lista de arriba usa lo que sobra */}
             <div className="flex flex-col gap-3 lg:-mx-1 lg:min-h-[9.5rem] xl:gap-2 lg:overflow-y-auto xl:min-h-0 lg:overscroll-contain lg:px-1">
               <div className="flex flex-col gap-2 border-t-2 border-dashed border-border pt-3 xl:border-t-0 xl:pt-0">
-                <div role="radiogroup" aria-label="Método de pago" className="grid grid-cols-3 gap-2 xl:order-3">
+                <div role="radiogroup" aria-label="Método de pago" className="order-3 grid grid-cols-3 gap-2 sm:order-none xl:order-3">
                   {METHODS.map((m) => {
                     const Icon = METHOD_ICON[m];
                     const on = method === m;
@@ -422,7 +422,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                         aria-checked={on}
                         onClick={() => setMethod(m)}
                         className={cn(
-                          "flex h-10 items-center justify-center gap-1.5 rounded-xl border-2 font-heading text-xs transition-[background-color,color,border-color,transform] duration-150 active:scale-[0.97] sm:text-sm xl:gap-1 xl:text-xs 2xl:text-sm",
+                          "flex h-10 items-center justify-center gap-1 rounded-xl border-2 px-1 font-heading text-xs sm:gap-1.5 transition-[background-color,color,border-color,transform] duration-150 active:scale-[0.97] sm:text-sm xl:gap-1 xl:text-xs 2xl:text-sm",
                           on ? "border-primary bg-primary text-primary-foreground shadow-[0_3px_0_var(--press-shadow)]" : "border-border bg-card text-foreground",
                         )}
                       >
@@ -432,9 +432,9 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                     );
                   })}
                 </div>
-                <div className="flex flex-col gap-2 sm:flex-row xl:contents">
+                <div className="contents sm:flex sm:flex-row sm:gap-2 xl:contents">
                   {takesCash && (
-                    <div className="flex min-w-0 flex-1 flex-col gap-1.5 rounded-2xl bg-lila-100/70 p-2.5 xl:order-4">
+                    <div className="flex min-w-0 flex-1 flex-col gap-1.5 rounded-2xl bg-lila-100/70 p-2.5 order-4 sm:order-none xl:order-4">
                       {method === "mixed" && (
                         <>
                           <div className="flex items-baseline justify-between gap-2">
@@ -477,7 +477,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                     </div>
                   )}
                   {/* Domicilio y porta al lado del efectivo (debajo en celular) */}
-                  <div className={cn("grid grid-cols-2 gap-2 xl:order-1", takesCash && "sm:flex sm:w-40 sm:shrink-0 sm:flex-col xl:grid xl:w-auto")}>
+                  <div className={cn("order-1 grid grid-cols-2 gap-2 sm:order-none xl:order-1", takesCash && "sm:flex sm:w-40 sm:shrink-0 sm:flex-col xl:grid xl:w-auto")}>
                     <label className={cn(TOGGLE, takesCash && "sm:h-auto sm:flex-1 xl:h-10")}>
                       <Bike aria-hidden className="size-4 shrink-0 text-primary" />
                       <span className="flex-1">Es domicilio</span>
@@ -491,7 +491,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                   </div>
                 </div>
                 {isDelivery && (
-                  <fieldset id="delivery-fields" className="grid grid-cols-2 gap-2 xl:order-2 rounded-2xl bg-lila-100/70 p-2.5 sm:grid-cols-3 xl:grid-cols-2">
+                  <fieldset id="delivery-fields" className="order-2 grid grid-cols-2 gap-2 sm:order-none xl:order-2 rounded-2xl bg-lila-100/70 p-2.5 sm:grid-cols-3 xl:grid-cols-2">
                     <legend className="sr-only">Datos del domicilio</legend>
                     <div className="flex flex-col gap-1">
                       <Label htmlFor="del-customer" className="text-xs">Cliente *</Label>
@@ -516,7 +516,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                   </fieldset>
                 )}
                 {hasContainer && (
-                  <fieldset id="container-fields" className="grid grid-cols-[auto_1fr_auto] xl:order-2 items-end gap-2 rounded-2xl bg-lila-100/70 p-2.5">
+                  <fieldset id="container-fields" className="order-2 grid grid-cols-[auto_1fr_auto] sm:order-none xl:order-2 items-end gap-2 rounded-2xl bg-lila-100/70 p-2.5">
                     <legend className="sr-only">Porta / envase</legend>
                     <div className="flex flex-col gap-1">
                       <Label htmlFor="container-qty" className="text-xs">Cantidad</Label>
