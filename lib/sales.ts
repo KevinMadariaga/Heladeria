@@ -328,19 +328,24 @@ export async function voidSaleTx(actor: Actor & { role: "admin" | "cashier" }, s
  * Productos, total y stock no se tocan. Solo mientras la caja de esa venta siga abierta,
  * para que el cierre cuadre con lo que realmente entró. Queda registro en paymentChanges.
  */
-export async function changePaymentMethod(actor: Actor & { role: "admin" | "cashier" }, saleId: string, method: Extract<PaymentMethod, "cash" | "transfer">) {
+export async function changePaymentMethod(
+  actor: Actor & { role: "admin" | "cashier" },
+  saleId: string,
+  method: Extract<PaymentMethod, "cash" | "transfer" | "mixed">,
+  transferAmount?: number,
+) {
   const sale = await Sale.findById(saleId);
   if (!sale || sale.status !== "paid") throw new BusinessError("La venta no existe o está anulada");
   if (actor.role !== "admin" && String(sale.cashierId) !== actor.id) throw new BusinessError("Solo puedes cambiar tus propias ventas");
-  if (sale.paymentMethod === method) throw new BusinessError("La venta ya tiene ese método de pago");
+  if (sale.paymentMethod === method && method !== "mixed") throw new BusinessError("La venta ya tiene ese método de pago");
   if (!(await CashShift.exists({ _id: sale.shiftId, status: "open" }))) {
     throw new BusinessError("La caja de esta venta ya se cerró; no se puede cambiar el método");
   }
-  // A efectivo: se asume pago exacto. A otro método: sin efectivo recibido ni cambio.
-  const payments = [{ method, amount: sale.total }];
-  const cash = method === "cash"
-    ? { $set: { paymentMethod: method, payments, cashReceived: sale.total, change: 0 } }
-    : { $set: { paymentMethod: method, payments }, $unset: { cashReceived: 1, change: 1 } };
+  // La parte en efectivo se asume exacta (sin cambio). Mixto: transferAmount por transferencia y el resto en efectivo.
+  const pay = splitPayment(method, sale.total, { transferAmount });
+  const cash = method === "transfer"
+    ? { $set: { paymentMethod: method, payments: pay.payments }, $unset: { cashReceived: 1, change: 1 } }
+    : { $set: { paymentMethod: method, payments: pay.payments, cashReceived: pay.cashReceived, change: 0 } };
   const r = await Sale.updateOne(
     { _id: sale._id, status: "paid", paymentMethod: sale.paymentMethod },
     { ...cash, $push: { paymentChanges: { from: sale.paymentMethod, to: method, by: actor.id } } },

@@ -48,6 +48,6 @@ export const closeShiftSchema = z.object({
   note: z.string().trim().max(300).optional(),
 });
 
-export const changeMethodSchema = z.object({ saleId: objectId, method: z.enum(SWITCHABLE_PAYMENT_METHODS) });
+export const changeMethodSchema = z.object({ saleId: objectId, method: z.enum(SWITCHABLE_PAYMENT_METHODS), transferAmount: money.optional() }); // transferAmount solo en mixto
 
 export const deliveryStatusSchema = z.object({ saleId: objectId, status: z.enum(DELIVERY_STATUSES) });

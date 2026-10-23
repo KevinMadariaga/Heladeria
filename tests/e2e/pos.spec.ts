@@ -102,6 +102,19 @@ test("cambiar método de pago después de cobrar: efectivo → transferencia →
   await page.keyboard.press("Escape");
   await page.reload();
   await expect(fila(page, "Debes tener en efectivo")).toHaveText(/57\.500/);
+
+  // Y también a mixto: $2.500 por transferencia y $5.000 en efectivo
+  await page.getByRole("button", { name: "Cambiar pago" }).click();
+  const mixto = page.getByRole("dialog", { name: /Venta #\d+/ });
+  await mixto.getByRole("radio", { name: "Mixto" }).click();
+  await mixto.getByLabel("Valor por transferencia").fill("2500");
+  await expect(mixto.getByText(/En efectivo: \$\s?5\.000/)).toBeVisible();
+  await mixto.getByRole("button", { name: "Guardar" }).click();
+  await expect(mixto.getByRole("status")).toHaveText(/ahora figura como Mixto/);
+  await page.keyboard.press("Escape");
+  await page.reload();
+  await expect(fila(page, "Debes tener en efectivo")).toHaveText(/55\.000/);
+  await expect(fila(page, "Debes tener en transferencias")).toHaveText(/2\.500/);
   await cerrarCuadrado(page);
 });
 

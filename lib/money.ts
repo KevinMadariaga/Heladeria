@@ -10,7 +10,7 @@ export const formatCOP = (amount: number) => cop.format(amount);
 /** Métodos con los que hoy se puede cobrar (los demás quedan solo en ventas antiguas). */
 export const ACTIVE_PAYMENT_METHODS = ["cash", "transfer", "mixed"] as const;
 /** Métodos a los que se puede cambiar una venta ya cobrada (mixto requiere montos: se vuelve a cobrar). */
-export const SWITCHABLE_PAYMENT_METHODS = ["cash", "transfer"] as const;
+export const SWITCHABLE_PAYMENT_METHODS = ["cash", "transfer", "mixed"] as const;
 
 export const PAYMENT_LABELS = { cash: "Efectivo", card: "Tarjeta", transfer: "Transferencia", mixed: "Mixto", nequi: "Nequi", daviplata: "Daviplata" } as const;
 

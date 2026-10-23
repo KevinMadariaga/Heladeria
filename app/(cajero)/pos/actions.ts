@@ -116,7 +116,7 @@ export async function changePaymentAction(raw: unknown) {
   const parsed = changeMethodSchema.safeParse(raw);
   if (!parsed.success) return { error: "Método inválido" };
   try {
-    await changePaymentMethod(user, parsed.data.saleId, parsed.data.method);
+    await changePaymentMethod(user, parsed.data.saleId, parsed.data.method, parsed.data.transferAmount);
   } catch (err) {
     if (err instanceof BusinessError) return { error: err.message };
     throw err;
