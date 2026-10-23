@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import type { Types } from "mongoose";
 import { ReceiptText, ShoppingCart, Wallet } from "lucide-react";
 import { IconBadge } from "@/components/icon-badge";
+import { ProductImage } from "@/components/product-image";
 import { requireRole } from "@/lib/auth-guard";
 import { closeShiftTotals } from "@/lib/cash";
 import { formatCOP, formatDateTime, PAYMENT_LABELS } from "@/lib/money";
 import { shiftTotals } from "@/lib/sales";
 import { CashShift } from "@/models/CashShift";
 import { Consumption } from "@/models/Consumption";
+import { Product } from "@/models/Product";
 import { Sale } from "@/models/Sale";
 import { OpenShiftForm } from "../open-shift-form";
 import { CloseShiftForm } from "./close-shift-form";
@@ -77,6 +79,9 @@ export default async function CajaPage() {
     consumptionRows(shift._id),
   ]);
   const { expectedCash, expectedTransfer } = closeShiftTotals(shift.openingCash, totalsByMethod, { cash: 0, transfer: 0 });
+  // Fotos de los productos vendidos en el turno
+  const photos = await Product.find({ _id: { $in: [...new Set(sales.flatMap((s) => s.items.map((i) => String(i.productId))))] } }, { imageUrl: 1 }).lean();
+  const photoOf = new Map(photos.map((p) => [String(p._id), p.imageUrl]));
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -135,7 +140,16 @@ export default async function CajaPage() {
                   {(s.containerFee ?? 0) > 0 && <span className="rounded-full bg-lila-100 px-2 py-0.5 text-xs">Porta x{s.containerQty ?? 1}</span>}
                   <span className={`ml-auto font-heading font-semibold tabular-nums ${s.status === "voided" ? "line-through" : ""}`}>{formatCOP(s.total)}</span>
                 </div>
-                <p className="text-sm break-words">{s.items.map((i) => `${i.qty}× ${i.name}`).join(", ")}</p>
+                <ul className="flex flex-wrap gap-1.5">
+                  {s.items.map((i, k) => (
+                    <li key={k} className="flex items-center gap-2 rounded-xl bg-lila-100/70 py-1 pr-3 pl-1 text-sm">
+                      <ProductImage src={photoOf.get(String(i.productId))} name={i.name} className="size-10 shrink-0 rounded-lg [&>span]:text-base" />
+                      <span>
+                        {i.qty}× {i.name}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-sm text-muted-foreground">
                     {PAYMENT_LABELS[s.paymentMethod]}
