@@ -337,7 +337,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
         ref={cartRef}
         id="carrito"
         aria-label="Carrito"
-        className="sticker order-first flex scroll-mt-4 flex-col self-start overflow-hidden bg-card lg:sticky lg:top-20 lg:order-none lg:h-[calc(100dvh-6rem)]"
+        className="sticker order-first flex scroll-mt-4 flex-col self-start overflow-hidden bg-card lg:sticky lg:top-22 lg:order-none lg:h-[calc(100dvh-6rem)]"
       >
         <div className="flex items-center gap-2 bg-lila-100 px-4 py-3">
           <ShoppingBag aria-hidden className="text-primary" />
@@ -352,7 +352,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
 
         <div className="flex flex-col gap-4 p-4 lg:min-h-0 lg:flex-1">
           {cart.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-3 text-center text-muted-foreground lg:py-8">
+            <div className="flex flex-col items-center gap-2 py-3 text-center text-muted-foreground lg:min-h-[8rem] lg:flex-1 lg:justify-center">
               <span aria-hidden className="text-4xl">🍦</span>
               <p>Toca un producto para agregarlo al pedido.</p>
             </div>
