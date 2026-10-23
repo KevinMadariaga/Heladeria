@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { AnimatePresence, motion, useAnimate } from "motion/react";
-import { Bike, CupSoda, HandCoins, Minus, Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
+import { Bike, CupSoda, HandCoins, Minus, Pencil, Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
 import { Modal } from "@/components/modal";
 import { MoneyInput } from "@/components/money-input";
 import { ProductImage } from "@/components/product-image";
@@ -172,6 +172,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
   const [error, setError] = useState("");
   const [ticket, setTicket] = useState<TicketSale | null>(null);
   const [consuming, setConsuming] = useState(false); // confirmar "lo saco yo"
+  const [editing, setEditing] = useState<"delivery" | "container" | null>(null); // ventana de domicilio / porta abierta
   const [consumeNote, setConsumeNote] = useState("");
   const [consumed, setConsumed] = useState(0); // total anotado (aviso)
   const [pending, startTransition] = useTransition();
@@ -226,6 +227,14 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
   }
 
   const setQty = (key: string, qty: number) => setCart((c) => (qty <= 0 ? c.filter((l) => l.key !== key) : c.map((l) => (l.key === key ? { ...l, qty } : l))));
+
+  // Marcar domicilio / porta abre su ventana con los campos; desmarcar lo quita.
+  function toggleOption(kind: "delivery" | "container", on: boolean) {
+    (kind === "delivery" ? setIsDelivery : setHasContainer)(on);
+    setEditing(on ? kind : null);
+    // Al abrir, el cursor va directo al primer dato (el <dialog> enfocaría la X).
+    if (on) requestAnimationFrame(() => document.getElementById(kind === "delivery" ? "del-customer" : "container-fee")?.focus());
+  }
 
   function checkout() {
     setError("");
@@ -349,7 +358,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
               <p>Toca un producto para agregarlo al pedido.</p>
             </div>
           ) : (
-            <ul className="-mx-1 flex max-h-[42dvh] flex-col gap-2 lg:max-h-none lg:min-h-[min(42dvh,calc(100dvh-31rem))] lg:flex-1 overflow-y-auto overscroll-contain px-1">
+            <ul className="-mx-1 flex max-h-[42dvh] flex-col gap-2 lg:max-h-none lg:min-h-[8rem] overflow-y-auto overscroll-contain px-1">
               <AnimatePresence initial={false}>
                 {cart.map((l) => (
                   <motion.li
@@ -399,85 +408,44 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
           {/* Celular: con el pedido vacío solo se ve el aviso, para que los productos queden cerca */}
           <div className={cn("contents", !cart.length && "max-lg:hidden")}>
             {/* Escritorio: la lista de arriba crece; opciones y pago tienen su propio scroll */}
-            <div className="flex flex-col gap-4 lg:-mx-1 lg:max-h-[34dvh] lg:min-h-[6rem] lg:overflow-y-auto lg:overscroll-contain lg:px-1">
+            <div className="flex flex-col gap-4 lg:-mx-1 lg:min-h-[9.5rem] lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:px-1">
               <div className="flex flex-col gap-3 border-t-2 border-dashed border-border pt-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="flex h-14 cursor-pointer items-center gap-2 rounded-2xl border-2 border-border bg-card px-3 font-heading text-sm transition-[background-color,border-color,transform] duration-150 active:scale-[0.97] has-checked:border-primary has-checked:bg-lila-100 has-focus-visible:ring-4 has-focus-visible:ring-ring">
-                    <Bike aria-hidden className="size-5 shrink-0 text-primary" />
-                    <span className="flex-1 leading-tight">Es domicilio</span>
-                    <input type="checkbox" checked={isDelivery} onChange={(e) => setIsDelivery(e.target.checked)} className="size-5 shrink-0 accent-primary" />
-                  </label>
-                  <label className="flex h-14 cursor-pointer items-center gap-2 rounded-2xl border-2 border-border bg-card px-3 font-heading text-sm transition-[background-color,border-color,transform] duration-150 active:scale-[0.97] has-checked:border-primary has-checked:bg-lila-100 has-focus-visible:ring-4 has-focus-visible:ring-ring">
-                    <CupSoda aria-hidden className="size-5 shrink-0 text-primary" />
-                    <span className="flex-1 leading-tight">Lleva porta</span>
-                    <input type="checkbox" checked={hasContainer} onChange={(e) => setHasContainer(e.target.checked)} className="size-5 shrink-0 accent-primary" />
-                  </label>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="flex min-h-14 items-center rounded-2xl border-2 border-border bg-card transition-[background-color,border-color] duration-150 has-checked:border-primary has-checked:bg-lila-100 has-focus-visible:ring-4 has-focus-visible:ring-ring">
+                    <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 self-stretch py-2 pl-3 font-heading text-sm active:scale-[0.97] transition-transform duration-150">
+                      <Bike aria-hidden className="size-5 shrink-0 text-primary" />
+                      <span className="min-w-0 flex-1 leading-tight">
+                        Es domicilio
+                        {isDelivery && <span className={cn("block truncate text-xs font-normal", deliveryInvalid ? "text-destructive" : "text-muted-foreground")}>{deliveryInvalid ? "Faltan datos" : [delivery.customer, fee > 0 && formatCOP(fee)].filter(Boolean).join(" · ")}</span>}
+                      </span>
+                      <input type="checkbox" checked={isDelivery} onChange={(e) => toggleOption("delivery", e.target.checked)} className="size-5 shrink-0 accent-primary" />
+                    </label>
+                    {isDelivery ? (
+                      <button type="button" aria-label="Editar es domicilio" onClick={() => setEditing("delivery")} className="grid size-10 shrink-0 place-items-center rounded-full text-primary active:bg-muted">
+                        <Pencil className="size-4" />
+                      </button>
+                    ) : (
+                      <span className="w-3 shrink-0" />
+                    )}
+                  </div>
+                  <div className="flex min-h-14 items-center rounded-2xl border-2 border-border bg-card transition-[background-color,border-color] duration-150 has-checked:border-primary has-checked:bg-lila-100 has-focus-visible:ring-4 has-focus-visible:ring-ring">
+                    <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 self-stretch py-2 pl-3 font-heading text-sm active:scale-[0.97] transition-transform duration-150">
+                      <CupSoda aria-hidden className="size-5 shrink-0 text-primary" />
+                      <span className="min-w-0 flex-1 leading-tight">
+                        Lleva porta
+                        {hasContainer && <span className="block truncate text-xs font-normal text-muted-foreground">{containerQty} · {formatCOP(containerFee)}</span>}
+                      </span>
+                      <input type="checkbox" checked={hasContainer} onChange={(e) => toggleOption("container", e.target.checked)} className="size-5 shrink-0 accent-primary" />
+                    </label>
+                    {hasContainer ? (
+                      <button type="button" aria-label="Editar lleva porta" onClick={() => setEditing("container")} className="grid size-10 shrink-0 place-items-center rounded-full text-primary active:bg-muted">
+                        <Pencil className="size-4" />
+                      </button>
+                    ) : (
+                      <span className="w-3 shrink-0" />
+                    )}
+                  </div>
                 </div>
-                {isDelivery && (
-                  <fieldset className="grid grid-cols-2 gap-2 rounded-2xl bg-lila-100/70 p-3">
-                    <legend className="sr-only">Datos del domicilio</legend>
-                    <div className="flex flex-col gap-1">
-                      <Label htmlFor="del-customer">Cliente *</Label>
-                      <Input id="del-customer" value={delivery.customer} onChange={(e) => setDel("customer")(e.target.value)} autoComplete="off" className="h-10 bg-card" />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <Label htmlFor="del-phone">Teléfono</Label>
-                      <Input id="del-phone" type="tel" inputMode="tel" value={delivery.phone} onChange={(e) => setDel("phone")(e.target.value)} className="h-10 bg-card" />
-                    </div>
-                    <div className="col-span-2 flex flex-col gap-1">
-                      <Label htmlFor="del-address">Dirección *</Label>
-                      <Input id="del-address" value={delivery.address} onChange={(e) => setDel("address")(e.target.value)} autoComplete="off" className="h-10 bg-card" />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <Label htmlFor="del-fee">Valor domicilio</Label>
-                      <MoneyInput id="del-fee" value={delivery.fee} onValueChange={setDel("fee")} className="h-10 bg-card" />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <Label htmlFor="del-notes">Notas</Label>
-                      <Input id="del-notes" value={delivery.notes} onChange={(e) => setDel("notes")(e.target.value)} placeholder="Torre 2, apto 301" className="h-10 bg-card" />
-                    </div>
-                  </fieldset>
-                )}
-                {hasContainer && (
-                  <fieldset className="grid grid-cols-[auto_1fr] items-end gap-2 rounded-2xl bg-lila-100/70 p-3">
-                    <legend className="sr-only">Porta / envase</legend>
-                    <div className="flex flex-col gap-1">
-                      <Label htmlFor="container-qty">Cantidad</Label>
-                      <div className="flex h-10 items-center rounded-full border-2 border-white bg-card shadow-sm">
-                        <button
-                          type="button"
-                          aria-label="Un porta menos"
-                          onClick={() => setContainerQty((q) => Math.max(1, q - 1))}
-                          className="grid size-9 place-items-center rounded-full text-primary active:bg-muted"
-                        >
-                          <Minus className="size-4" />
-                        </button>
-                        <input
-                          id="container-qty"
-                          type="number"
-                          inputMode="numeric"
-                          min={1}
-                          max={99}
-                          value={containerQty}
-                          onChange={(e) => setContainerQty(Math.min(99, Math.max(1, Math.trunc(Number(e.target.value)) || 1)))}
-                          className="w-8 [appearance:textfield] bg-transparent text-center font-heading tabular-nums outline-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                        <button
-                          type="button"
-                          aria-label="Un porta más"
-                          onClick={() => setContainerQty((q) => Math.min(99, q + 1))}
-                          className="grid size-9 place-items-center rounded-full text-primary active:bg-muted"
-                        >
-                          <Plus className="size-4" />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <Label htmlFor="container-fee">Valor de cada porta</Label>
-                      <MoneyInput id="container-fee" value={containerFeeInput} onValueChange={setContainerFeeInput} className="h-10 bg-card" />
-                    </div>
-                  </fieldset>
-                )}
               </div>
 
               <div role="radiogroup" aria-label="Método de pago" className="grid grid-cols-3 gap-2">
@@ -539,7 +507,6 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                 </div>
               )}
 
-              {deliveryInvalid && cart.length > 0 && <p className="text-sm text-destructive">Completa el cliente y la dirección del domicilio.</p>}
               {error && (
                 <p role="alert" className="text-sm text-destructive">
                   {error}
@@ -623,6 +590,96 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
             }}
           />
         )}
+      </Modal>
+
+      <Modal open={editing === "delivery"} onClose={() => setEditing(null)} title="Datos del domicilio">
+        <div className="flex flex-col gap-4">
+          <fieldset className="grid grid-cols-2 gap-2">
+            <legend className="sr-only">Datos del domicilio</legend>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="del-customer">Cliente *</Label>
+              <Input id="del-customer" value={delivery.customer} onChange={(e) => setDel("customer")(e.target.value)} autoComplete="off" className="h-11" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="del-phone">Teléfono</Label>
+              <Input id="del-phone" type="tel" inputMode="tel" value={delivery.phone} onChange={(e) => setDel("phone")(e.target.value)} className="h-11" />
+            </div>
+            <div className="col-span-2 flex flex-col gap-1">
+              <Label htmlFor="del-address">Dirección *</Label>
+              <Input id="del-address" value={delivery.address} onChange={(e) => setDel("address")(e.target.value)} autoComplete="off" className="h-11" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="del-fee">Valor domicilio</Label>
+              <MoneyInput id="del-fee" value={delivery.fee} onValueChange={setDel("fee")} className="h-11" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="del-notes">Notas</Label>
+              <Input id="del-notes" value={delivery.notes} onChange={(e) => setDel("notes")(e.target.value)} placeholder="Torre 2, apto 301" className="h-11" />
+            </div>
+          </fieldset>
+          <div className="flex justify-between gap-2">
+            <Button type="button" variant="outline" className="h-11 rounded-xl" onClick={() => toggleOption("delivery", false)}>
+              Quitar domicilio
+            </Button>
+            <Button type="button" disabled={deliveryInvalid} className="h-11 rounded-xl" onClick={() => setEditing(null)}>
+              Listo
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={editing === "container"} onClose={() => setEditing(null)} title="Porta / envase">
+        <div className="flex flex-col gap-4">
+          <fieldset className="grid grid-cols-[auto_1fr] items-end gap-2">
+            <legend className="sr-only">Porta / envase</legend>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="container-qty">Cantidad</Label>
+              <div className="flex h-11 items-center rounded-full border-2 border-border bg-card">
+                <button
+                  type="button"
+                  aria-label="Un porta menos"
+                  onClick={() => setContainerQty((q) => Math.max(1, q - 1))}
+                  className="grid size-9 place-items-center rounded-full text-primary active:bg-muted"
+                >
+                  <Minus className="size-4" />
+                </button>
+                <input
+                  id="container-qty"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={99}
+                  value={containerQty}
+                  onChange={(e) => setContainerQty(Math.min(99, Math.max(1, Math.trunc(Number(e.target.value)) || 1)))}
+                  className="w-8 [appearance:textfield] bg-transparent text-center font-heading tabular-nums outline-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <button
+                  type="button"
+                  aria-label="Un porta más"
+                  onClick={() => setContainerQty((q) => Math.min(99, q + 1))}
+                  className="grid size-9 place-items-center rounded-full text-primary active:bg-muted"
+                >
+                  <Plus className="size-4" />
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="container-fee">Valor de cada porta</Label>
+              <MoneyInput id="container-fee" value={containerFeeInput} onValueChange={setContainerFeeInput} className="h-11" />
+            </div>
+          </fieldset>
+          <p className="text-sm text-muted-foreground">
+            Total portas: <strong className="font-heading text-foreground">{formatCOP(containerFee)}</strong>
+          </p>
+          <div className="flex justify-between gap-2">
+            <Button type="button" variant="outline" className="h-11 rounded-xl" onClick={() => toggleOption("container", false)}>
+              Quitar porta
+            </Button>
+            <Button type="button" className="h-11 rounded-xl" onClick={() => setEditing(null)}>
+              Listo
+            </Button>
+          </div>
+        </div>
       </Modal>
 
       <Modal open={consuming} onClose={() => setConsuming(false)} title="Anotar a mi cuenta">
