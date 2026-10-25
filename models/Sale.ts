@@ -16,7 +16,8 @@ const itemSchema = new Schema(
     addons: { type: [option], default: [] },
     unitPrice: { type: Number, required: true },
     qty: { type: Number, required: true, min: 1 },
-    subtotal: { type: Number, required: true },
+    subtotal: { type: Number, required: true }, // ya con el descuento restado
+    discount: Number, // descuento de cumpleaños de la línea
   },
   { _id: false },
 );

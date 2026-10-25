@@ -30,9 +30,18 @@ export function Ticket({ sale }: { sale: TicketSale }) {
             {i.variant && ` (${i.variant})`}
             {i.addons.length > 0 && <span className="block pl-4 text-xs">+ {i.addons.join(", ")}</span>}
           </span>
-          <span>{formatCOP(i.subtotal)}</span>
+          <span className="text-right">
+            {i.discount > 0 && <span className="block text-xs line-through">{formatCOP(i.subtotal + i.discount)}</span>}
+            {formatCOP(i.subtotal)}
+          </span>
         </div>
       ))}
+      {sale.items.some((i) => i.discount > 0) && (
+        <div className="flex justify-between">
+          <span>Desc. cumpleaños</span>
+          <span>-{formatCOP(sale.items.reduce((s, i) => s + i.discount, 0))}</span>
+        </div>
+      )}
       {(sale.containerFee > 0 || (sale.delivery?.fee ?? 0) > 0) && (
         <div className="flex justify-between border-t border-dashed border-current pt-1">
           <span>Productos</span>

@@ -26,6 +26,8 @@ export function ShiftSummary({
   deliveryCount = 0,
   containerFees = 0,
   containerCount = 0,
+  discounts = 0,
+  discountCount = 0,
 }: {
   openingCash: number;
   totalsByMethod: Totals;
@@ -34,6 +36,8 @@ export function ShiftSummary({
   deliveryCount?: number;
   containerFees?: number;
   containerCount?: number;
+  discounts?: number;
+  discountCount?: number;
 }) {
   const t = closeShiftTotals(openingCash, totalsByMethod, { cash: 0, transfer: 0 });
   const legacy = LEGACY.filter((m) => (totalsByMethod[m] ?? 0) > 0);
@@ -46,7 +50,8 @@ export function ShiftSummary({
           <Row key={m} label={PAYMENT_LABELS[m]} value={totalsByMethod[m]!} />
         ))}
         <div className="my-1 border-t border-dashed border-border" />
-        <Row label="Productos" value={t.salesTotal - deliveryFees - containerFees} />
+        <Row label="Productos" value={t.salesTotal - deliveryFees - containerFees} hint={discounts > 0 ? "ya con los descuentos restados" : undefined} />
+        <Row label="Descuentos cumpleaños" value={-discounts} hint={`${discountCount} venta(s) con descuento 🎂`} />
         <Row label="Portas / envases" value={containerFees} hint={`${containerCount} envase(s)`} />
         <Row label="Domicilios" value={deliveryFees} hint={`${deliveryCount} domicilio(s)`} />
         <Row label="Total vendido" value={t.salesTotal} strong hint={`${salesCount} venta(s) · productos + portas + domicilios`} />

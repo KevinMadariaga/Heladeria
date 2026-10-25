@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { AnimatePresence, motion, useAnimate } from "motion/react";
-import { Bike, CupSoda, HandCoins, Minus, Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
+import { Bike, Cake, CupSoda, HandCoins, Minus, Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
 import { Modal } from "@/components/modal";
 import { MoneyInput } from "@/components/money-input";
 import { ProductImage } from "@/components/product-image";
@@ -20,7 +20,7 @@ import { ChangeMethod, METHOD_ICON } from "./change-method";
 import { Ticket } from "./ticket";
 
 type Category = { id: string; name: string; color: string };
-type Line = { key: string; product: ClientProduct; variant?: string; addons: Option[]; unitPrice: number; qty: number };
+type Line = { key: string; product: ClientProduct; variant?: string; addons: Option[]; unitPrice: number; qty: number; discount: number }; // discount: cumpleaños, en pesos
 
 const METHODS = ACTIVE_PAYMENT_METHODS;
 const QUICK_CASH = [10000, 20000, 50000, 100000];
@@ -174,6 +174,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
   const [error, setError] = useState("");
   const [ticket, setTicket] = useState<TicketSale | null>(null);
   const [consuming, setConsuming] = useState(false); // confirmar "lo saco yo"
+  const [bdayKey, setBdayKey] = useState<string | null>(null); // línea con el descuento de cumpleaños abierto
   const [consumeNote, setConsumeNote] = useState("");
   const [consumed, setConsumed] = useState(0); // total anotado (aviso)
   const [pending, startTransition] = useTransition();
@@ -195,7 +196,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
     return products.filter((p) => (cat === "all" || p.categoryId === cat) && (!q || p.name.toLocaleLowerCase("es").includes(q)));
   }, [products, cat, query]);
 
-  const itemsTotal = cart.reduce((s, l) => s + l.unitPrice * l.qty, 0);
+  const itemsTotal = cart.reduce((s, l) => s + l.unitPrice * l.qty - l.discount, 0);
   const fee = isDelivery ? Number(delivery.fee || 0) : 0;
   const containerFee = hasContainer ? containerQty * Number(containerFeeInput || 0) : 0;
   const total = itemsTotal + fee + containerFee;
@@ -216,7 +217,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
       const found = c.find((l) => l.key === key);
       return found
         ? c.map((l) => (l.key === key ? { ...l, qty: l.qty + qty } : l))
-        : [...c, { key, product, variant, addons: priced.addons, unitPrice: priced.unitPrice, qty }];
+        : [...c, { key, product, variant, addons: priced.addons, unitPrice: priced.unitPrice, qty, discount: 0 }];
     });
     setError("");
     setConsumed(0);
@@ -227,7 +228,11 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
     else add(p, undefined, [], 1);
   }
 
-  const setQty = (key: string, qty: number) => setCart((c) => (qty <= 0 ? c.filter((l) => l.key !== key) : c.map((l) => (l.key === key ? { ...l, qty } : l))));
+  const setQty = (key: string, qty: number) =>
+    setCart((c) => (qty <= 0 ? c.filter((l) => l.key !== key) : c.map((l) => (l.key === key ? { ...l, qty, discount: Math.min(l.discount, l.unitPrice * qty) } : l))));
+  // Descuento de cumpleaños de una línea: entre 0 y lo que vale la línea.
+  const setDiscount = (key: string, value: number) =>
+    setCart((c) => c.map((l) => (l.key === key ? { ...l, discount: Math.max(0, Math.min(value, l.unitPrice * l.qty)) } : l)));
 
   // Marcar domicilio / porta muestra sus campos debajo y lleva el cursor al primero.
   function toggleOption(kind: "delivery" | "container", on: boolean) {
@@ -239,7 +244,13 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
     setError("");
     startTransition(async () => {
       const res = await submitSale({
-        items: cart.map((l) => ({ productId: l.product.id, variant: l.variant, addons: l.addons.map((a) => a.name), qty: l.qty })),
+        items: cart.map((l) => ({
+          productId: l.product.id,
+          variant: l.variant,
+          addons: l.addons.map((a) => a.name),
+          qty: l.qty,
+          birthdayDiscount: l.discount || undefined,
+        })),
         paymentMethod: method,
         cashReceived: takesCash && cashReceived !== "" ? received : undefined,
         transferAmount: method === "mixed" ? transfer : undefined,
@@ -264,6 +275,7 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
   // Deja el pedido en blanco (productos, pago, domicilio y porta) para el siguiente cliente.
   function resetOrder() {
     setCart([]);
+    setBdayKey(null);
     setCashReceived("");
     setTransferAmount("");
     setMethod("cash");
@@ -373,37 +385,79 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                     animate={{ opacity: 1, transform: "translateX(0px)" }}
                     exit={{ opacity: 0, transform: "translateX(-12px)" }}
                     transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-                    className="flex items-center gap-3 rounded-2xl bg-lila-100/70 p-2 lg:p-1.5"
+                    className="flex flex-col gap-2 rounded-2xl bg-lila-100/70 p-2 lg:p-1.5"
                   >
-                    <ProductImage src={l.product.imageUrl} name={l.product.name} color={colorOf.get(l.product.categoryId)} className="size-14 shrink-0 rounded-xl lg:size-12" />
-                    <div className="min-w-0 flex-1">
-                      <p className="line-clamp-1 font-heading leading-tight font-semibold">{l.product.name}</p>
-                      {(l.variant || l.addons.length > 0) && (
-                        <p className="line-clamp-1 text-xs text-muted-foreground">
-                          {[l.variant, ...l.addons.map((a) => `+ ${a.name}`)].filter(Boolean).join(" · ")}
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <ProductImage src={l.product.imageUrl} name={l.product.name} color={colorOf.get(l.product.categoryId)} className="size-12 shrink-0 rounded-xl sm:size-14 lg:size-12" />
+                      <div className="min-w-0 flex-1">
+                        <p className="line-clamp-1 font-heading leading-tight font-semibold">{l.product.name}</p>
+                        {(l.variant || l.addons.length > 0) && (
+                          <p className="line-clamp-1 text-xs text-muted-foreground">
+                            {[l.variant, ...l.addons.map((a) => `+ ${a.name}`)].filter(Boolean).join(" · ")}
+                          </p>
+                        )}
+                        <p className="flex flex-wrap items-baseline gap-x-1.5 font-heading text-sm font-semibold text-primary tabular-nums">
+                          {l.discount > 0 && <span className="text-xs font-normal text-muted-foreground line-through">{formatCOP(l.unitPrice * l.qty)}</span>}
+                          {formatCOP(l.unitPrice * l.qty - l.discount)}
                         </p>
-                      )}
-                      <p className="font-heading text-sm font-semibold text-primary tabular-nums">{formatCOP(l.unitPrice * l.qty)}</p>
-                    </div>
-                    <div className="flex shrink-0 items-center rounded-full border-2 border-white bg-card shadow-sm">
+                      </div>
                       <button
                         type="button"
-                        aria-label={`Quitar uno de ${l.product.name}`}
-                        onClick={() => setQty(l.key, l.qty - 1)}
-                        className="grid size-10 place-items-center rounded-full text-primary active:bg-muted"
+                        aria-label={`Descuento de cumpleaños en ${l.product.name}`}
+                        aria-expanded={bdayKey === l.key}
+                        onClick={() => setBdayKey((k) => (k === l.key ? null : l.key))}
+                        className={cn(
+                          "grid size-9 shrink-0 place-items-center rounded-full border-2 transition-colors sm:size-10 duration-150 active:scale-[0.97]",
+                          l.discount > 0 || bdayKey === l.key ? "border-caramelo-400 bg-caramelo-400 text-uva-900" : "border-white bg-card text-primary shadow-sm",
+                        )}
                       >
-                        {l.qty === 1 ? <Trash2 className="size-4" /> : <Minus className="size-4" />}
+                        <Cake className="size-4" />
                       </button>
-                      <span className="w-6 text-center font-heading tabular-nums">{l.qty}</span>
-                      <button
-                        type="button"
-                        aria-label={`Agregar uno de ${l.product.name}`}
-                        onClick={() => setQty(l.key, l.qty + 1)}
-                        className="grid size-10 place-items-center rounded-full text-primary active:bg-muted"
-                      >
-                        <Plus className="size-4" />
-                      </button>
+                      <div className="flex shrink-0 items-center rounded-full border-2 border-white bg-card shadow-sm">
+                        <button
+                          type="button"
+                          aria-label={`Quitar uno de ${l.product.name}`}
+                          onClick={() => setQty(l.key, l.qty - 1)}
+                          className="grid size-9 place-items-center rounded-full text-primary active:bg-muted sm:size-10"
+                        >
+                          {l.qty === 1 ? <Trash2 className="size-4" /> : <Minus className="size-4" />}
+                        </button>
+                        <span className="w-6 text-center font-heading tabular-nums">{l.qty}</span>
+                        <button
+                          type="button"
+                          aria-label={`Agregar uno de ${l.product.name}`}
+                          onClick={() => setQty(l.key, l.qty + 1)}
+                          className="grid size-9 place-items-center rounded-full text-primary active:bg-muted sm:size-10"
+                        >
+                          <Plus className="size-4" />
+                        </button>
+                      </div>
                     </div>
+                    {bdayKey === l.key && (
+                      <div role="group" aria-label={`Cumpleaños: ${l.product.name}`} className="flex flex-wrap items-center gap-1.5 rounded-xl bg-card p-2">
+                        <span className="font-heading text-xs font-medium">🎂 Descuento cumpleaños:</span>
+                        <Button type="button" variant="outline" className="h-8 rounded-full px-2.5 text-xs" onClick={() => setDiscount(l.key, l.unitPrice)}>
+                          1 gratis
+                        </Button>
+                        <Button type="button" variant="outline" className="h-8 rounded-full px-2.5 text-xs" onClick={() => setDiscount(l.key, Math.round(l.unitPrice / 2))}>
+                          50% de 1
+                        </Button>
+                        <div className="w-28">
+                          <MoneyInput
+                            aria-label={`Valor del descuento de ${l.product.name}`}
+                            placeholder="Otro valor"
+                            value={l.discount ? String(l.discount) : ""}
+                            onValueChange={(d) => setDiscount(l.key, Number(d || 0))}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        {l.discount > 0 && (
+                          <Button type="button" variant="ghost" className="h-8 rounded-full px-2.5 text-xs" onClick={() => setDiscount(l.key, 0)}>
+                            Quitar
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </motion.li>
                 ))}
               </AnimatePresence>

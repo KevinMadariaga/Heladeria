@@ -17,6 +17,8 @@ const cashShiftSchema = new Schema({
   deliveryCount: Number,
   containerFees: Number,
   containerCount: Number,
+  discounts: Number, // descuentos de cumpleaños del turno
+  discountCount: Number,
   totalsByMethod: { type: Map, of: Number },
   salesCount: Number,
   status: { type: String, enum: ["open", "closed"], default: "open" },

@@ -31,6 +31,7 @@ export async function submitSale(raw: unknown) {
           addons: i.addons.map((a) => a.name ?? ""),
           qty: i.qty,
           subtotal: i.subtotal,
+          discount: i.discount ?? 0,
         })),
         total: s.total,
         paymentMethod: s.paymentMethod,

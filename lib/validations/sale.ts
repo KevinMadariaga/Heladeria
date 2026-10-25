@@ -13,6 +13,7 @@ const cartItems = z
       variant: z.string().max(60).optional(),
       addons: z.array(z.string().max(60)).max(20).default([]),
       qty: z.number().int().min(1).max(99),
+      birthdayDiscount: money.optional(), // descuento de cumpleaños en esta línea (solo ventas)
     }),
   )
   .min(1, "El carrito está vacío")

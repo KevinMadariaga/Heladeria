@@ -256,3 +256,28 @@ test("cajero anota lo que saca: no entra en la caja, sale al cerrar y el admin v
   await expect(page.locator("dt", { hasText: "Cajero E2E" }).locator("+ dd")).toHaveText(/debe \$\s?[\d.]+/);
   await expect(page.getByText(nota)).toBeVisible();
 });
+
+test("descuento de cumpleaños: 1 gratis en la línea, sale en el ticket y en la caja", async ({ page }) => {
+  await loginCajeroConCajaAbierta(page, "10000");
+  const productos = page.getByRole("region", { name: "Productos" });
+  const carrito = page.getByRole("complementary", { name: "Carrito" });
+
+  // 2 Latte ($15.000) y el cumpleañero se lleva 1 gratis → $7.500
+  await productos.getByRole("button", { name: /Latte/ }).click();
+  await carrito.getByRole("button", { name: "Agregar uno de Latte" }).click();
+  await carrito.getByRole("button", { name: "Descuento de cumpleaños en Latte" }).click();
+  await carrito.getByRole("group", { name: "Cumpleaños: Latte" }).getByRole("button", { name: "1 gratis" }).click();
+  await carrito.getByRole("button", { name: /Cobrar \$\s?7\.500/ }).click();
+
+  const ticket = page.getByRole("dialog", { name: "Venta registrada" });
+  await expect(ticket.locator("#ticket")).toContainText(/Desc\. cumpleaños\s*-\$\s?7\.500/);
+  await expect(ticket.locator("#ticket")).toContainText(/TOTAL\s*\$\s?7\.500/);
+  await ticket.getByRole("button", { name: "Nueva venta" }).click();
+
+  await page.getByRole("link", { name: "Caja" }).click();
+  await expect(fila(page, "Descuentos cumpleaños")).toHaveText(/-\s?\$\s?7\.500|\$\s?-7\.500/);
+  await expect(fila(page, "Total vendido")).toHaveText(/7\.500/);
+  await expect(fila(page, "Debes tener en efectivo")).toHaveText(/17\.500/);
+  await expect(page.getByText(/🎂 -\$\s?7\.500/)).toBeVisible();
+  await cerrarCuadrado(page);
+});

@@ -54,6 +54,8 @@ export default async function CajaPage() {
                 deliveryCount={last.deliveryCount ?? 0}
                 containerFees={last.containerFees ?? 0}
                 containerCount={last.containerCount ?? 0}
+                discounts={last.discounts ?? 0}
+                discountCount={last.discountCount ?? 0}
               />
               <CloseResult
                 expectedCash={last.expectedCash ?? 0}
@@ -73,7 +75,7 @@ export default async function CajaPage() {
     );
   }
 
-  const [{ totalsByMethod, salesCount, deliveryFees, deliveryCount, containerFees, containerCount }, sales, consumptions] = await Promise.all([
+  const [{ totalsByMethod, salesCount, deliveryFees, deliveryCount, containerFees, containerCount, discounts, discountCount }, sales, consumptions] = await Promise.all([
     shiftTotals(shift._id),
     Sale.find({ shiftId: shift._id }).sort({ createdAt: -1 }).lean(),
     consumptionRows(shift._id),
@@ -112,6 +114,8 @@ export default async function CajaPage() {
               deliveryCount={deliveryCount}
               containerFees={containerFees}
               containerCount={containerCount}
+              discounts={discounts}
+              discountCount={discountCount}
             />
           </div>
           <div className="flex flex-col gap-5 border-t-2 border-dashed border-border pt-5 2xl:border-t-0 2xl:pt-0 2xl:pl-6">
@@ -138,6 +142,9 @@ export default async function CajaPage() {
                   <span className="text-sm text-muted-foreground">{formatDateTime(s.createdAt)}</span>
                   {s.delivery && <span className="rounded-full bg-fresa-300 px-2 py-0.5 text-xs">Domicilio</span>}
                   {(s.containerFee ?? 0) > 0 && <span className="rounded-full bg-lila-100 px-2 py-0.5 text-xs">Porta x{s.containerQty ?? 1}</span>}
+                  {s.items.some((i) => (i.discount ?? 0) > 0) && (
+                    <span className="rounded-full bg-caramelo-400/40 px-2 py-0.5 text-xs">🎂 -{formatCOP(s.items.reduce((t, i) => t + (i.discount ?? 0), 0))}</span>
+                  )}
                   <span className={`ml-auto font-heading font-semibold tabular-nums ${s.status === "voided" ? "line-through" : ""}`}>{formatCOP(s.total)}</span>
                 </div>
                 <ul className="flex flex-wrap gap-1.5">
