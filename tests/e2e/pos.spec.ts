@@ -229,13 +229,13 @@ test("cajero anota lo que saca: no entra en la caja, sale al cerrar y el admin v
   await loginCajeroConCajaAbierta(page, "10000");
   const nota = `almuerzo ${Date.now()}`; // único: la base de pruebas guarda consumos de corridas anteriores
   const carrito = page.getByRole("complementary", { name: "Carrito" });
-  await page.getByRole("region", { name: "Productos" }).getByRole("button", { name: /Torta de chocolate/ }).click();
+  await page.getByRole("region", { name: "Productos" }).getByRole("button", { name: /Latte/ }).click(); // sin control de stock: no gasta inventario de la base de pruebas
   await carrito.getByRole("button", { name: /Lo saco yo/ }).click();
   const dialog = page.getByRole("dialog", { name: "Anotar a mi cuenta" });
-  await expect(dialog).toContainText(/\$\s?8\.000/);
+  await expect(dialog).toContainText(/\$\s?7\.500/);
   await dialog.getByLabel("Nota (opcional)").fill(nota);
   await dialog.getByRole("button", { name: "Sí, anotar" }).click();
-  await expect(carrito.getByText(/Consumo anotado a tu cuenta: \$\s?8\.000/)).toBeVisible();
+  await expect(carrito.getByText(/Consumo anotado a tu cuenta: \$\s?7\.500/)).toBeVisible();
 
   // Caja: no suma dinero; se ve lo que sacó, y también en el último cierre
   await page.getByRole("link", { name: "Caja" }).click();
