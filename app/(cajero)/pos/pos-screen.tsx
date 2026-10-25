@@ -212,12 +212,13 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
 
   function add(product: ClientProduct, variant: string | undefined, addonNames: string[], qty: number) {
     const priced = unitPrice(product, variant, addonNames);
-    const key = [product.id, variant ?? "", ...[...addonNames].sort()].join("|");
+    const base = [product.id, variant ?? "", ...[...addonNames].sort()].join("|");
     setCart((c) => {
-      const found = c.find((l) => l.key === key);
-      return found
-        ? c.map((l) => (l.key === key ? { ...l, qty: l.qty + qty } : l))
-        : [...c, { key, product, variant, addons: priced.addons, unitPrice: priced.unitPrice, qty, discount: 0 }];
+      // Se suma a la línea igual SIN descuento; la del cumpleañero no se toca (otra persona de la mesa paga precio normal).
+      const found = c.find((l) => l.key.split("#")[0] === base && l.discount === 0);
+      if (found) return c.map((l) => (l === found ? { ...l, qty: l.qty + qty } : l));
+      const key = c.some((l) => l.key.split("#")[0] === base) ? `${base}#${Date.now()}` : base;
+      return [...c, { key, product, variant, addons: priced.addons, unitPrice: priced.unitPrice, qty, discount: 0 }];
     });
     setError("");
     setConsumed(0);
@@ -442,6 +443,11 @@ export function PosScreen({ products, categories }: { products: ClientProduct[];
                         <Button type="button" variant="outline" className="h-8 rounded-full px-2.5 text-xs" onClick={() => setDiscount(l.key, Math.round(l.unitPrice / 2))}>
                           50% de 1
                         </Button>
+                        {l.qty > 1 && (
+                          <Button type="button" variant="outline" className="h-8 rounded-full px-2.5 text-xs" onClick={() => setDiscount(l.key, Math.round((l.unitPrice * l.qty) / 2))}>
+                            50% c/u ({l.qty})
+                          </Button>
+                        )}
                         <div className="w-28">
                           <MoneyInput
                             aria-label={`Valor del descuento de ${l.product.name}`}

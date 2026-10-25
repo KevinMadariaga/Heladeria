@@ -281,3 +281,30 @@ test("descuento de cumpleaños: 1 gratis en la línea, sale en el ticket y en la
   await expect(page.getByText(/🎂 -\$\s?7\.500/)).toBeVisible();
   await cerrarCuadrado(page);
 });
+
+test("cumpleaños en la mesa: 50% a cada uno de sus 2 productos y el de otra persona va aparte a precio normal", async ({ page }) => {
+  await loginCajeroConCajaAbierta(page, "10000");
+  const productos = page.getByRole("region", { name: "Productos" });
+  const carrito = page.getByRole("complementary", { name: "Carrito" });
+
+  // El cumpleañero pide 2 Latte ($15.000) → mitad cada uno = $7.500
+  await productos.getByRole("button", { name: /Latte/ }).click();
+  await carrito.getByRole("button", { name: "Agregar uno de Latte" }).click();
+  await carrito.getByRole("button", { name: "Descuento de cumpleaños en Latte" }).click();
+  await carrito.getByRole("group", { name: "Cumpleaños: Latte" }).getByRole("button", { name: "50% c/u (2)" }).click();
+  await expect(carrito.getByRole("button", { name: /Cobrar \$\s?7\.500/ })).toBeVisible();
+
+  // Otra persona de la mesa pide otro Latte: línea nueva a precio normal → total $15.000
+  await productos.getByRole("button", { name: /Latte/ }).click();
+  await expect(carrito.getByRole("listitem")).toHaveCount(2);
+  await carrito.getByRole("button", { name: /Cobrar \$\s?15\.000/ }).click();
+
+  const ticket = page.getByRole("dialog", { name: "Venta registrada" });
+  await expect(ticket.locator("#ticket")).toContainText(/Desc\. cumpleaños\s*-\$\s?7\.500/);
+  await expect(ticket.locator("#ticket")).toContainText(/TOTAL\s*\$\s?15\.000/);
+  await ticket.getByRole("button", { name: "Nueva venta" }).click();
+
+  await page.getByRole("link", { name: "Caja" }).click();
+  await expect(fila(page, "Total vendido")).toHaveText(/15\.000/);
+  await cerrarCuadrado(page);
+});
